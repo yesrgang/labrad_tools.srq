@@ -1,6 +1,6 @@
-from ecdl.clients.ecdl_control import ECDLControl
+from ecdl.clients.ecdl_client import ECDLClient
 
-class MyECDLControl(ECDLControl):
+class MyECDLClient(ECDLClient):
     servername = 'ecdl'
     name = 'blue_master'
     update_id = 461014
@@ -19,6 +19,6 @@ if __name__ == '__main__':
     from client_tools import qt4reactor
     qt4reactor.install()
     from twisted.internet import reactor
-    widget = MyECDLControl(reactor)
+    widget = MyECDLClient(reactor)
     widget.show()
     reactor.run()
