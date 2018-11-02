@@ -8,7 +8,7 @@ class TestClient(SequencerClient):
     master_channel = 'Trigger@D15'
     timing_channel = 'Trigger@D15'
 
-    qt_style = 'Gtk+'
+    qt_style = 'cleanlooks'
     
 if __name__ == '__main__':
     from PyQt4 import QtGui
