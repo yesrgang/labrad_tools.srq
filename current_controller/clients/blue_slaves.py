@@ -17,8 +17,8 @@ class ClientZS(CurrentControllerClient):
     update_time = 100
 
 class MyClientContainer(MultipleClientContainer):
-    qt_style = 'plastique'
-#    qt_style = 'cleanlooks'
+#    qt_style = 'Gtk+'
+    pass
 
 if __name__ == '__main__':
     from PyQt4 import QtGui
@@ -30,6 +30,6 @@ if __name__ == '__main__':
     channels = ['3d', '2d', 'zs']
     widgets = [Client3D(reactor), Client2D(reactor), ClientZS(reactor)]
     widget = MyClientContainer(widgets, reactor)
-    app.setStyle(QtGui.QStyleFactory.create(widget.qt_style))
+#    app.setStyle(QtGui.QStyleFactory.create(widget.qt_style))
     widget.show()
     reactor.run()

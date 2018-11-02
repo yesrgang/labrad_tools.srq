@@ -8,7 +8,7 @@ class TestClient(SequencerClient):
     master_channel = 'Trigger@D15'
     timing_channel = 'Trigger@D15'
 
-    qt_style = 'cleanlooks'
+#    qt_style = 'cleanlooks'
     
 if __name__ == '__main__':
     from PyQt4 import QtGui
@@ -17,6 +17,6 @@ if __name__ == '__main__':
     qt4reactor.install()
     from twisted.internet import reactor
     widget = TestClient(reactor)
-    app.setStyle(QtGui.QStyleFactory.create(widget.qt_style))
+#    app.setStyle(QtGui.QStyleFactory.create(widget.qt_style))
     widget.show()
     reactor.run()
