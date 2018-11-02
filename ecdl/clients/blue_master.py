@@ -1,4 +1,4 @@
-from ecdl.clients.ecdl_client import ECDLClient
+from ecdl.clients.default import ECDLClient
 
 class MyECDLClient(ECDLClient):
     servername = 'ecdl'
