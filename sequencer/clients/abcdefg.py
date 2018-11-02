@@ -1,4 +1,4 @@
-from sequencer.clients.sequencer_control import SequencerClient
+from sequencer.clients.default import SequencerClient
 
 class TestClient(SequencerClient):
     conductor_servername = 'conductor'
