@@ -17,19 +17,20 @@ class BluePMT(Picoscope):
     autostart = True
     picoscope_servername = 'yesr10_picoscope'
     picoscope_serialnumber = 'DU009/008'
-    picoscope_duration = 2e-3
+    picoscope_duration = 1e-3
     picoscope_sampling_interval = 100e-9
     picoscope_frequency = 100e6
     picoscope_n_capture = 3
     picoscope_trigger_threshold = 2 # [V]
     picoscope_timeout = -1 # [ms]
-    verbose = True
+    verbose = False
     recording = False
 
     picoscope_channel_settings = {
         'A': {
             'coupling': 'DC',
             'VRange': 10.0,
+            'VOffset': -10.0,
             'probeAttenuation': 1.0,
             'enabled': True,
             },
@@ -122,9 +123,10 @@ class BluePMT(Picoscope):
             json.dump(processed_data, outfile, default=lambda x: x.tolist())
         
         h5py_path = abs_data_path + '.hdf5'
-        with h5py.File(h5py_path) as h5f:
-            for k, v in raw_data.items():
-                h5f.create_dataset(k, data=np.array(v), compression='gzip')
+        h5f = h5py.File(h5py_path, 'w')
+        for k, v in raw_data.items():
+            h5f.create_dataset(k, data=np.array(v), compression='gzip')
+        h5f.close()
         
         """ temporairly store data """
         if len(self.record_names) > self.max_records:

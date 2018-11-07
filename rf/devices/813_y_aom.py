@@ -7,5 +7,6 @@ class AOM(AD9854):
     subaddress = 1
 
     default_frequency = 78.75e6
+    default_amplitude = 1
 
 Device = AOM

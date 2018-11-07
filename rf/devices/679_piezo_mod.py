@@ -11,8 +11,8 @@ class PiezoMod679(DG1000Z):
 
     update_parameters = ['state', 'offset']
 
-    def initialize(self):
-        DG1000Z.initialize(self)
+    def initialize(self, config):
+        DG1000Z.initialize(self, config)
         self.vxi11.write('SOUR2:FREQ 5e2')
         self.vxi11.write('SOUR2:VOLT 0.15')
         self.vxi11.write('SOUR2:VOLT:OFFS 0')

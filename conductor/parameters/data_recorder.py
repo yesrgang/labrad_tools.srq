@@ -1,10 +1,16 @@
-import os
+import copy
 import json
+import os
+import time
+
+from twisted.internet import reactor
 
 from conductor.parameter import ConductorParameter
 
+
 class DataRecorder(ConductorParameter):
     autostart = True
+    priority = -1
     data_directory = os.path.join(os.getenv('PROJECT_DATA_PATH'), 'data')
     data_filename = '{}.conductor.json'
     call_in_thread = False
@@ -22,8 +28,11 @@ class DataRecorder(ConductorParameter):
             point_path = os.path.join(experiment_directory, point_filename)
             
             parameter_values = self.server._get_parameter_values(request={}, all=True)
-            with open(point_path, 'w') as outfile:
-                json.dump(parameter_values, outfile, default=lambda x: None)
+            reactor.callInThread(self._save_json, point_path, copy.deepcopy(parameter_values))
+    
+    def _save_json(self, point_path, parameter_values):
+       with open(point_path, 'w') as outfile:
+           json.dump(parameter_values, outfile, default=lambda x: None)
     
     
 Parameter = DataRecorder

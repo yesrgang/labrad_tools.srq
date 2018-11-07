@@ -5,6 +5,6 @@ class BlueMaster(AOSenseECDL):
     serial_servername = 'yesr20_serial'
     serial_address = 'COM12'
 
-    default_diode_current = 173.0 # [mA]
+    default_diode_current = 126.0 # [mA]
 
 Device = BlueMaster

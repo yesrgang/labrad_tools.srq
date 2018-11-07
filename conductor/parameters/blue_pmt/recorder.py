@@ -8,8 +8,10 @@ from twisted.internet.defer import inlineCallbacks
 from conductor.parameter import ConductorParameter
 
 class Recorder(ConductorParameter):
+    autostart = True
     priority = 8
     data_filename = '{}.blue_pmt'
+    nondata_filename = '{}/blue_pmt'
     pmt_name = 'blue_pmt'
 
     record_sequences = [
@@ -33,17 +35,14 @@ class Recorder(ConductorParameter):
         if (experiment_name is not None) and (sequence is not None):
             point_filename = self.data_filename.format(shot_number)
             rel_point_path = os.path.join(experiment_name, point_filename)
+        elif sequence is not None:
+            rel_point_path = self.nondata_filename.format(time.strftime('%Y%m%d'))
             
-            if sequence.loop:
-#                print 'pre', sequence.previous_value
-                if np.intersect1d(previous_sequence.value, self.record_sequences):
-                    value = rel_point_path
-            elif np.intersect1d(sequence.value, self.record_sequences):
-#                print 'now', sequence.value
+        if sequence.loop:
+            if np.intersect1d(previous_sequence.value, self.record_sequences):
                 value = rel_point_path
-#            sequence_value = self.server._get_parameter_value('sequencer.sequence')
-#            if np.intersect1d(sequence_value, self.record_sequences):
-#                value = rel_point_path
+        elif np.intersect1d(sequence.value, self.record_sequences):
+            value = rel_point_path
 
         return value
     
@@ -54,7 +53,6 @@ class Recorder(ConductorParameter):
     def update(self):
         if self.value is not None:
             request = {self.pmt_name: self.value}
-            print request
             self.cxn.pmt.record(json.dumps(request))
 
 Parameter = Recorder

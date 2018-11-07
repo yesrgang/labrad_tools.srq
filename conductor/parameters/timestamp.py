@@ -3,10 +3,9 @@ import time
 from conductor.parameter import ConductorParameter
 
 class Timestamp(ConductorParameter):
+    """ value set by sequencer.sequence """ 
     autostart = True
-    priority = 100
+    priority = 1
 
-    def update(self):
-        self.value = time.time()
 
 Parameter = Timestamp
