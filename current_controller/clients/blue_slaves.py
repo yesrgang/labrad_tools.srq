@@ -17,8 +17,7 @@ class ClientZS(CurrentControllerClient):
     update_time = 100
 
 class MyClientContainer(MultipleClientContainer):
-#    qt_style = 'Gtk+'
-    pass
+    name = 'blue slaves'
 
 if __name__ == '__main__':
     from PyQt4 import QtGui

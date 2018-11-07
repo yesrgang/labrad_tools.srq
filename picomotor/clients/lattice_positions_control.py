@@ -1,26 +1,95 @@
-class ClientConfig(object):
-    def __init__(self, name):
-        self.name = name
-        self.servername = 'picomotor'
-        self.update_id = 461315
+from picomotor.clients.picomotor_client import MultipleWidgetsContainer
+from picomotor.clients.picomotor_client import PicomotorClient
 
-        self.position_range = [-1e5, 1e5]
-        self.update_time = 100
 
-        # widget sizes
-        self.spinbox_width = 70
+class H1XClient(PicomotorClient):
+    name = 'h1_x'
+    servername = 'picomotor'
+    position_range = [-1e5, 1e5]
+    update_time = 100
+    spinbox_width = 70
 
+class H1YClient(PicomotorClient):
+    name = 'h1_y'
+    servername = 'picomotor'
+    position_range = [-1e5, 1e5]
+    update_time = 100
+    spinbox_width = 70
+
+class H2XClient(PicomotorClient):
+    name = 'h2_x'
+    servername = 'picomotor'
+    position_range = [-1e5, 1e5]
+    update_time = 100
+    spinbox_width = 70
+
+class H2YClient(PicomotorClient):
+    name = 'h2_y'
+    servername = 'picomotor'
+    position_range = [-1e5, 1e5]
+    update_time = 100
+    spinbox_width = 70
+
+class H1XRClient(PicomotorClient):
+    name = 'h1_xr'
+    servername = 'picomotor'
+    position_range = [-1e5, 1e5]
+    update_time = 100
+    spinbox_width = 70
+
+class H1YRClient(PicomotorClient):
+    name = 'h1_yr'
+    servername = 'picomotor'
+    position_range = [-1e5, 1e5]
+    update_time = 100
+    spinbox_width = 70
+
+class H2XRClient(PicomotorClient):
+    name = 'h2_xr'
+    servername = 'picomotor'
+    position_range = [-1e5, 1e5]
+    update_time = 100
+    spinbox_width = 70
+
+class H2YRClient(PicomotorClient):
+    name = 'h2_yr'
+    servername = 'picomotor'
+    position_range = [-1e5, 1e5]
+    update_time = 100
+    spinbox_width = 70
+
+class VXClient(PicomotorClient):
+    name = 'v_x'
+    servername = 'picomotor'
+    position_range = [-1e5, 1e5]
+    update_time = 100
+    spinbox_width = 70
+
+class VYClient(PicomotorClient):
+    name = 'v_y'
+    servername = 'picomotor'
+    position_range = [-1e5, 1e5]
+    update_time = 100
+    spinbox_width = 70
+
+class MyWidgetContainer(MultipleWidgetsContainer):
+    name = lattice_positions
+    widgets = [
+        (H1XClient, H1YClient),
+        (H2XClient, H2YClient),
+        (H1XRClient, H1YRClient),
+        (H2XRClient, H2YRClient),
+        (VXClient, VYClient),
+        ]
+
+Client = MyWidgetContainer
 
 if __name__ == '__main__':
-    import sys
     from PyQt4 import QtGui
-    a = QtGui.QApplication([])
-    import client_tools.qt4reactor as qt4reactor
+    app = QtGui.QApplication([])
+    from client_tools import qt4reactor
     qt4reactor.install()
     from twisted.internet import reactor
-    from picomotor.clients.picomotor_client import MultiplePicomotorClient
-    mirrors = [('h1_x', 'h1_y'), ('h2_x', 'h2_y'), ('h1_xr', 'h1_yr'), ('h2_xr', 'h2_yr'), ('v_x', 'v_y')]
-    configs = [[ClientConfig(axis) for axis in mirror] for mirror in mirrors]
-    widget = MultiplePicomotorClient(configs, reactor)
+    widget = Client(reactor)
     widget.show()
     reactor.run()
