@@ -1,6 +1,8 @@
 import json
+import os
 import time
 
+import labrad
 from twisted.internet.reactor import callInThread
 from twisted.internet.reactor import callFromThread
 
@@ -26,6 +28,13 @@ class Sequence(ConductorParameter):
     
     def initialize(self, config):
         super(Sequence, self).initialize(config)
+        try:
+            password = os.getenv('SR1LABRADPASSWORD')
+            self.sr1_cxn = labrad.connect(host='yeelmo.colorado.edu', password=password)
+        except Exception, e:
+            print e
+            print 'sr1 time server not found'
+            self.sr1_cxn = None
 
         self.connect_to_labrad()
         self.ok_server = getattr(self.cxn, self.ok_master_servername)
@@ -100,9 +109,11 @@ class Sequence(ConductorParameter):
         conductor_server.advance()
 
     def _mark_timestamp(self):
-        #self.server._set_parameter_value('timestamp', time.time())
-        conductor_server = getattr(self.cxn, 'conductor')
         request = {'timestamp': time.time()}
+        if self.sr1_cxn is not None:
+            sr1_timestamp = self.sr1_cxn.time.time()
+            request.update({'sr1_timestamp': sr1_timestamp})
+        conductor_server = self.cxn.conductor
         conductor_server.set_parameter_values(json.dumps(request))
 
 Parameter = Sequence
