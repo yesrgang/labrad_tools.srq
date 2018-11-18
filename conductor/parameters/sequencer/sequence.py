@@ -46,8 +46,9 @@ class Sequence(ConductorParameter):
         self.fp = fp
 
         request = {device_name: {} for device_name in self.sequencer_devices}
-        self.sequencer_server.reload_devices(json.dumps(request))
-        #self.update()
+#        self.sequencer_server.reload_devices(json.dumps(request))
+        self.sequencer_server.initialize_devices(json.dumps(request))
+        self.previous_sequencer_parameter_values = self._get_sequencer_parameter_values()
         callInThread(self.update)
     
     def update(self):
@@ -73,7 +74,10 @@ class Sequence(ConductorParameter):
                 device_name: self.value 
                     for device_name in self.sequencer_devices
                 } 
-            if what_i_think_is_running != what_is_running:
+            current_sequencer_parameter_values = self._get_sequencer_parameter_values()
+            #if (what_i_think_is_running != what_is_running) or (
+            #        self.previous_sequencer_parameter_values != current_sequencer_parameter_values):
+            if (what_i_think_is_running != what_is_running):
                 request = what_i_think_is_running
                 self.sequencer_server.sequence(json.dumps(request))
                 self.server.experiment['repeat_shot'] = True
@@ -87,6 +91,13 @@ class Sequence(ConductorParameter):
         
         #callInThread(self._advance_on_trigger)
         self._advance_on_trigger()
+
+    def _get_sequencer_parameter_values(self):
+        active_parameters = self.server._get_active_parameters()
+        active_sequencer_parameters = [pn for pn in active_parameters if pn.find('sequencer.') == 0]
+        request = {pn: None for pn in active_sequencer_parameters}
+        sequencer_parameter_values = self.server._get_parameter_values(request)
+        return sequencer_parameter_values
 
     def _wait_for_trigger(self):
         # clear trigger
@@ -106,7 +117,7 @@ class Sequence(ConductorParameter):
         self._mark_timestamp()
         #self.server._advance()
         conductor_server = getattr(self.cxn, 'conductor')
-        conductor_server.advance()
+        conductor_server.advance(True)
 
     def _mark_timestamp(self):
         request = {'timestamp': time.time()}

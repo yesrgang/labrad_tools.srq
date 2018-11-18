@@ -9,7 +9,7 @@ from twisted.internet.reactor import callInThread
 
 from pmt.devices.picoscope.device import Picoscope
 
-TAU = 2.3e4
+TAU = 12e3
 def fit_function(x, a):
     return a * np.exp(-x / TAU)
 
@@ -17,8 +17,8 @@ class BluePMT(Picoscope):
     autostart = True
     picoscope_servername = 'yesr10_picoscope'
     picoscope_serialnumber = 'DU009/008'
-    picoscope_duration = 1e-3
-    picoscope_sampling_interval = 100e-9
+    picoscope_duration = 0.25e-3
+    picoscope_sampling_interval = 10e-9
     picoscope_frequency = 100e6
     picoscope_n_capture = 3
     picoscope_trigger_threshold = 2 # [V]
@@ -94,7 +94,7 @@ class BluePMT(Picoscope):
 
         b = np.mean(raw_data['bac'])
         for label, raw_counts in raw_data.items():
-            counts = np.array(raw_counts)[500:] - b
+            counts = np.array(raw_counts) - b
             popt, pcov = curve_fit(fit_function, range(len(counts)), counts, p0=self.p0)
             raw_fits[label] = popt[0]
 

@@ -22,10 +22,9 @@ class FeedbackPoint(ConductorParameter):
         }
     """
     locks = {}
-    priority = 9
+    priority = 8
     autostart = True
     value_type = 'list'
-    drift_rate = 0
 
     def initialize(self, config):
         super(FeedbackPoint, self).initialize(config)
@@ -35,7 +34,6 @@ class FeedbackPoint(ConductorParameter):
                 self.locks[name] = PID(**settings)
             if settings['type'] == 'PIID':
                 self.locks[name] = PIID(**settings)
-        self.t0 = time.time()
 
     def _get_lock(self, lock):
         if lock not in self.locks:
@@ -61,8 +59,7 @@ class FeedbackPoint(ConductorParameter):
 
             if tot > control_loop.tot_cutoff:
                 control_loop.tick(side, frac)
-            drift = self.drift_rate * (time.time() - self.t0)
-            request = {'clock_servo.control_signals.{}'.format(name): control_loop.output + drift}
+            request = {'clock_servo.control_signals.{}'.format(name): control_loop.output}
             self.server._set_parameter_values(request)
 
 Parameter = FeedbackPoint

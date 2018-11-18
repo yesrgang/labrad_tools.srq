@@ -1,5 +1,6 @@
 from collections import deque
 import numpy as np
+import time
 
 class DitherIII(object):
     def __init__(self, **kwargs):
@@ -10,6 +11,7 @@ class DitherIII(object):
         self.input_offset = 0.
         self.output_offset = 0.
         self.output = None
+        self._output = 0
         self.output_range = [float('-inf'), float('inf')]
 
         self.input_buffer = {
@@ -100,7 +102,10 @@ class PID(object):
         self.input_offset = 0.
         self.output_offset = 0.
         self.output = None
+        self._output = 0
         self.output_range = [float('-inf'), float('inf')]
+        self.drift_rate = 0
+        self.drift_t0 = time.time()
 
         self.input_buffer = {
             'left': deque([], maxlen=1),
@@ -132,7 +137,6 @@ class PID(object):
 
     def tick(self, side, value):
         self.input_buffer[side].append(value)
-        print 'side', side
         if np.product([bool(v) for v in self.input_buffer.values()]):
             self.update_output()
         return self.output
@@ -142,7 +146,6 @@ class PID(object):
         in_r = self.input_buffer['right'].pop()
 
         self.error = in_l - in_r - self.input_offset
-        print 'error', self.error
 
         b_0 = self.filter_coefficients['b_0']
         b_1 = self.filter_coefficients['b_1']
@@ -157,10 +160,13 @@ class PID(object):
 
         x_.append(x)
         y_.append(y)
-
-        # offset
-        y += self.output_offset
-        # y += self.output
+        
+        self._output = y
+    
+        # output offset
+        drift = self.drift_rate * (time.time() - self.drift_t0)
+        print 'drift', drift
+        y += self.output_offset + drift
 
         # clamp
         y = sorted([self.output_range[0], y, self.output_range[1]])[1]
@@ -192,6 +198,8 @@ class PIID(object):
         self.output_offset = 0.
         self.output = None
         self.output_range = [float('-inf'), float('inf')]
+        self.drift_rate = 0
+        self.drift_t0 = time.time()
 
         self.input_buffer = {
             'left': deque([], maxlen=1),
@@ -255,7 +263,9 @@ class PIID(object):
 
 
         # offset
-        y += self.output_offset
+        drift = self.drift_rate * (time.time() - self.drift_t0)
+        print 'drift', drift
+        y += self.output_offset + drift
 
         # clamp
         y = sorted([self.output_range[0], y, self.output_range[1]])[1]
