@@ -16,11 +16,12 @@ class Sequence(ConductorParameter):
     value = ['all_off'] * 1
 
     loop = True
-    #call_in_thread = False
-    call_in_thread = True
+    call_in_thread = False
+    #call_in_thread = True
 
     ok_master_servername = 'yesr20_ok'
-    ok_master_interfacename = '14290008VF'
+    #ok_master_interfacename = '14290008VF'
+    ok_master_interfacename = '1616000EHA'
 
     sequencer_servername = 'sequencer'
     sequencer_devices = ['abcd', 'e', 'f', 'g']
@@ -31,6 +32,7 @@ class Sequence(ConductorParameter):
         try:
             password = os.getenv('SR1LABRADPASSWORD')
             self.sr1_cxn = labrad.connect(host='yeelmo.colorado.edu', password=password)
+            sr1_timestamp = self.sr1_cxn.time.time()
         except Exception, e:
             print e
             print 'sr1 time server not found'
@@ -89,8 +91,8 @@ class Sequence(ConductorParameter):
         if (not self.loop) and running:
             raise Exception('something is wrong with sequencer.sequence')
         
-        #callInThread(self._advance_on_trigger)
-        self._advance_on_trigger()
+        callInThread(self._advance_on_trigger)
+        #self._advance_on_trigger()
 
     def _get_sequencer_parameter_values(self):
         active_parameters = self.server._get_active_parameters()

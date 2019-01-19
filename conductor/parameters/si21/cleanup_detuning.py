@@ -4,7 +4,8 @@ class CleanupDetuning(ConductorParameter):
     """ detuning of the 1716882'th tooth of the frequency comb, when locked to 
     Si21 cavity of the atomic probe
     """
-    priority = 3
+    #priority = 3
+    priority = 13
     autostart = True
     
     visible_tooth = 1716882.0

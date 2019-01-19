@@ -14,7 +14,7 @@ class PiezoMod679(DG1000Z):
     def initialize(self, config):
         DG1000Z.initialize(self, config)
         self.vxi11.write('SOUR2:FREQ 5e2')
-        self.vxi11.write('SOUR2:VOLT 0.15')
+        self.vxi11.write('SOUR2:VOLT 1.5')
         self.vxi11.write('SOUR2:VOLT:OFFS 0')
         self.vxi11.write('SOUR2:FUNC:RAMP:SYMM 50')
         self.vxi11.write('SOUR2:APPL:RAMP')

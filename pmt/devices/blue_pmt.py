@@ -18,7 +18,7 @@ class BluePMT(Picoscope):
     picoscope_servername = 'yesr10_picoscope'
     picoscope_serialnumber = 'DU009/008'
     picoscope_duration = 0.25e-3
-    picoscope_sampling_interval = 10e-9
+    picoscope_sampling_interval = 20e-9
     picoscope_frequency = 100e6
     picoscope_n_capture = 3
     picoscope_trigger_threshold = 2 # [V]

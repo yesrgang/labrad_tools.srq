@@ -6,7 +6,8 @@ class ABCD(YeSrDigitalBoard):
     conductor_servername = 'conductor'
     ok_servername = 'yesr20_ok'
 #    ok_interface = '14290008VW'
-    ok_interface = '14290008VF'
+    #ok_interface = '14290008VF'
+    ok_interface = '1616000EHA'
 
     is_master = True
 

@@ -4,7 +4,8 @@ class ProbeDetuning(ConductorParameter):
     """ detuning of the 1716882'th tooth of the frequency comb, when locked to 
     Si21 cavity of the atomic probe
     """
-    priority = 3
+    #priority = 3
+    priority = 13
     autostart = True
     
     visible_tooth = 1716882.0
@@ -54,13 +55,15 @@ class ProbeDetuning(ConductorParameter):
 
             # second aom on SrQ table to keep FNC VCO within output bandwidth.
             srq_steer = srq_dist_aom + srq_table_offset_aom - srq_dist_fnc
+            srq_vsteer = srq_steer - srq_table_offset_aom
 
 #            optical_comb_tooth = f_sr - self.value
 
-        
+            print 'svc', srq_vsteer        
             request = {
                 'clock_aom.hr_frequency': float(srq_steer),
                 'clock_fiber_aom.hr_demod_frequency': float(srq_dist_fnc),
+                'vclock_aom.frequency': float(srq_vsteer),
 #                'si21.visible_comb_tooth_frequency':  
                 }
             self.server._set_parameter_values(request)
