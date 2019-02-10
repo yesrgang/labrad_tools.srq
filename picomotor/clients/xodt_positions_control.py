@@ -58,6 +58,20 @@ class ImageYClient(PicomotorClient):
     update_time = 100
     spinbox_width = 70
 
+class OSGXClient(PicomotorClient):
+    name = 'osg_x'
+    servername = 'picomotor'
+    position_range = [-1e5, 1e5]
+    update_time = 100
+    spinbox_width = 70
+
+class OSGYClient(PicomotorClient):
+    name = 'osg_y'
+    servername = 'picomotor'
+    position_range = [-1e5, 1e5]
+    update_time = 100
+    spinbox_width = 70
+
 class MyWidgetContainer(MultipleWidgetsContainer):
     name = 'xodt positions'
     widgets = [
@@ -65,6 +79,7 @@ class MyWidgetContainer(MultipleWidgetsContainer):
         (VODTXClient, VODTYClient),
         (TransXClient, TransYClient),
         (ImageXClient, ImageYClient),
+        (OSGXClient, OSGYClient),
         ]
 
 Client = MyWidgetContainer
