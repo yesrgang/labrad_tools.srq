@@ -1,1 +1,3 @@
 *.pyc
+conductor/parameters/.values/
+conductor/.experiments/
