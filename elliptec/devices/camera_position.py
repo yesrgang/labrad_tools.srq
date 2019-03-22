@@ -1,5 +1,5 @@
-import elliptec
-reload(elliptec)
+import labrad
+
 from elliptec import ELLO
 from elliptec import ELLOProxy
 
@@ -16,5 +16,8 @@ class DeviceProxy(Device, ELLOProxy):
     serial_servername = 'yesr10_serial'
 
     def __init__(self, **kwargs):
-        Device.__init__(self, **kwargs)
-        ELLOProxy.__init__(self, self.serial_servername)
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        cxn = labrad.connect()
+        serial_server = cxn[self.serial_servername]
+        ELLOProxy.__init__(self, serial_server)
