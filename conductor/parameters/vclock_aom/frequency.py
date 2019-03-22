@@ -13,7 +13,6 @@ class Frequency(ConductorParameter):
         self.connect_to_labrad()
     
     def update(self):
-        print 'vc', self.value
         if self.value is not None:
             request =  {
                 'clock_steer2': self.value
