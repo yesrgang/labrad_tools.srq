@@ -73,7 +73,7 @@ class VYClient(PicomotorClient):
     spinbox_width = 70
 
 class MyWidgetContainer(MultipleWidgetsContainer):
-    name = lattice_positions
+    name = 'lattice_positions'
     widgets = [
         (H1XClient, H1YClient),
         (H2XClient, H2YClient),
