@@ -1,20 +1,24 @@
-from current_controller.clients.default import MultipleClientContainer
-from current_controller.clients.default import CurrentControllerClient
+from current_controller3.devices._3d import DeviceProxy as _3DProxy
+from current_controller3.devices._2d import DeviceProxy as _2DProxy
+from current_controller3.devices.zs import DeviceProxy as ZSProxy
+from current_controller3.clients.default import CurrentControllerClient
+from current_controller3.clients.default import MultipleClientContainer
 
-class Client3D(CurrentControllerClient):
+
+class _3DClient(CurrentControllerClient):
     name = '3d'
-    servername = 'current_controller'
     update_time = 200
+    DeviceProxy = _3DProxy
 
-class Client2D(CurrentControllerClient):
+class _2DClient(CurrentControllerClient):
     name = '2d'
-    servername = 'current_controller'
     update_time = 200
+    DeviceProxy = _2DProxy
 
-class ClientZS(CurrentControllerClient):
+class ZSClient(CurrentControllerClient):
     name = 'zs'
-    servername = 'current_controller'
     update_time = 200
+    DeviceProxy = ZSProxy
 
 class MyClientContainer(MultipleClientContainer):
     name = 'blue slaves'
@@ -27,8 +31,7 @@ if __name__ == '__main__':
     from twisted.internet import reactor
 
     channels = ['3d', '2d', 'zs']
-    widgets = [Client3D(reactor), Client2D(reactor), ClientZS(reactor)]
+    widgets = [_3DClient(reactor), _2DClient(reactor), ZSClient(reactor)]
     widget = MyClientContainer(widgets, reactor)
-#    app.setStyle(QtGui.QStyleFactory.create(widget.qt_style))
     widget.show()
     reactor.run()

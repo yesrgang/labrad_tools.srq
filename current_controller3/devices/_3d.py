@@ -4,7 +4,7 @@ class Device(LDC80):
     autostart = False
     gpib_address = 'GPIB0::9::INSTR'
 
-    pro8_slot = 6
+    pro8_slot = 2
     default_current = 0.1500
     current_range = [0.0, 0.155]
 
