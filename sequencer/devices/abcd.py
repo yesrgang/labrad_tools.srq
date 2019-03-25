@@ -6,7 +6,8 @@ class ABCD(YeSrDigitalBoard):
     conductor_servername = 'conductor'
     ok_servername = 'yesr20_ok'
 #    ok_interface = '14290008VW'
-    ok_interface = '14290008VF'
+    #ok_interface = '14290008VF'
+    ok_interface = '1616000EHA'
 
     is_master = True
 
@@ -109,7 +110,7 @@ class ABCD(YeSrDigitalBoard):
         YeSrDigitalChannel(loc=['B', 9], name='813 H1 AOM', mode='auto', manual_output=False, invert=False),
         YeSrDigitalChannel(loc=['B', 10], name='813 H2 AOM', mode='auto', manual_output=False, invert=False),
         YeSrDigitalChannel(loc=['B', 11], name='813 V AOM', mode='auto', manual_output=False, invert=False),
-        YeSrDigitalChannel(loc=['B', 12], name='M2 Shutter', mode='auto', manual_output=False, invert=False),
+        YeSrDigitalChannel(loc=['B', 12], name='M2 Shutter', mode='manual', manual_output=True, invert=False),
         YeSrDigitalChannel(loc=['B', 13], name='813 H1 Shutter', mode='auto', manual_output=False, invert=False),
         YeSrDigitalChannel(loc=['B', 14], name='813 H2 Shutter', mode='auto', manual_output=False, invert=False),
         YeSrDigitalChannel(loc=['B', 15], name='813 V Shutter', mode='auto', manual_output=False, invert=False),
@@ -121,7 +122,7 @@ class ABCD(YeSrDigitalBoard):
         YeSrDigitalChannel(loc=['C', 4], name='LR/HR [hi/lo]', mode='auto', manual_output=False, invert=False),
         YeSrDigitalChannel(loc=['C', 5], name='HR AOM Sweep', mode='auto', manual_output=False, invert=False),
         YeSrDigitalChannel(loc=['C', 6], name='HR Demod Sweep', mode='auto', manual_output=False, invert=False),
-        YeSrDigitalChannel(loc=['C', 7], name='V Clock Switch', mode='manual', manual_output=True, invert=True),
+        YeSrDigitalChannel(loc=['C', 7], name='V Clock Switch', mode='manual', manual_output=True, invert=False),
         YeSrDigitalChannel(loc=['C', 8], name='Clock Servo Enable', mode='manual', manual_output=True, invert=False),
         YeSrDigitalChannel(loc=['C', 9], name='RM Table Shutters', mode='manual', manual_output=True, invert=False),
         YeSrDigitalChannel(loc=['C', 10], name='RM Horizontal Shutter', mode='auto', manual_output=False, invert=False),
@@ -143,8 +144,8 @@ class ABCD(YeSrDigitalBoard):
         YeSrDigitalChannel(loc=['D', 9], name='RM FM Trigger', mode='auto', manual_output=False, invert=False),
         YeSrDigitalChannel(loc=['D', 10], name='TTLD10', mode='auto', manual_output=False, invert=False),
         YeSrDigitalChannel(loc=['D', 11], name='StepperMotor', mode='manual', manual_output=False, invert=False),
-        YeSrDigitalChannel(loc=['D', 12], name='TTLD12', mode='auto', manual_output=False, invert=False),
-        YeSrDigitalChannel(loc=['D', 13], name='TTLD13', mode='auto', manual_output=False, invert=False),
+        YeSrDigitalChannel(loc=['D', 12], name='TTLD12', mode='manual', manual_output=True, invert=False),
+        YeSrDigitalChannel(loc=['D', 13], name='TTLD13', mode='manual', manual_output=False, invert=False),
         YeSrDigitalChannel(loc=['D', 14], name='AOSense Heater Enable', mode='manual', manual_output=True, invert=False),
         YeSrDigitalChannel(loc=['D', 15], name='Trigger', mode='auto', manual_output=False, invert=False),
         ]

@@ -2,6 +2,7 @@ from conductor.parameter import ConductorParameter
 from control_loops import PID, PIID
 import json
 import os
+import time
  
 class FeedbackPoint(ConductorParameter):
     """ 
@@ -21,7 +22,8 @@ class FeedbackPoint(ConductorParameter):
         }
     """
     locks = {}
-    priority = 9
+    #priority = 8
+    priority = 18
     autostart = True
     value_type = 'list'
 
@@ -53,12 +55,13 @@ class FeedbackPoint(ConductorParameter):
             request = {'blue_pmt': point_path}
             response_json = self.cxn.pmt.retrive_records(json.dumps(request))
             response = json.loads(response_json)
-            frac = response['blue_pmt']['frac_sum']
-            tot = response['blue_pmt']['tot_sum']
+#            frac = response['blue_pmt']['frac_sum']
+#            tot = response['blue_pmt']['tot_sum']
+            frac = response['blue_pmt']['frac_fit']
+            tot = response['blue_pmt']['tot_fit']
 
             if tot > control_loop.tot_cutoff:
                 control_loop.tick(side, frac)
-
             request = {'clock_servo.control_signals.{}'.format(name): control_loop.output}
             self.server._set_parameter_values(request)
 

@@ -4,7 +4,8 @@ from conductor.parameter import ConductorParameter
 
 class Frequency(ConductorParameter):
     autostart = False
-    priority = 2
+    #priority = 2
+    priority = 12
     value = 42e6
 
     dark_offset = -1e6

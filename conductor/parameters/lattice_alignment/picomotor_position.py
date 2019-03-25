@@ -8,6 +8,7 @@ class PicomotorPosition(ConductorParameter):
     call_in_thread = False
 
     def initialize(self, config):
+        print '{} initd'.format(self.name)
         super(PicomotorPosition, self).initialize(config)
         self.connect_to_labrad()
     

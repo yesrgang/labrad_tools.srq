@@ -72,7 +72,6 @@ class OSGYClient(PicomotorClient):
     update_time = 100
     spinbox_width = 70
 
-
 class MyWidgetContainer(MultipleWidgetsContainer):
     name = 'xodt positions'
     widgets = [
