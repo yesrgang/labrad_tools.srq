@@ -4,17 +4,17 @@ from current_controller.clients.default import CurrentControllerClient
 class Client3D(CurrentControllerClient):
     name = '3d'
     servername = 'current_controller'
-    update_time = 100
+    update_time = 200
 
 class Client2D(CurrentControllerClient):
     name = '2d'
     servername = 'current_controller'
-    update_time = 100
+    update_time = 200
 
 class ClientZS(CurrentControllerClient):
     name = 'zs'
     servername = 'current_controller'
-    update_time = 100
+    update_time = 200
 
 class MyClientContainer(MultipleClientContainer):
     name = 'blue slaves'
