@@ -239,6 +239,7 @@ class StopExperiment(ButtonActionWidget):
 #        self.reactor.stop()
 
 class MultipleActionsContainer(QtGui.QWidget):
+    name = None
     def __init__(self, client_list, reactor, cxn=None):
         QtGui.QDialog.__init__(self)
         self.client_list = client_list
@@ -254,6 +255,7 @@ class MultipleActionsContainer(QtGui.QWidget):
             self.layout.addWidget(client)
         self.setFixedSize(ACTION_WIDTH + 20 , (ACTION_HEIGHT + 12) * len(self.client_list) )
         self.setLayout(self.layout)
+        self.setWindowTitle('conductor - common actions')
 
     def closeEvent(self, x):
         self.reactor.stop()
