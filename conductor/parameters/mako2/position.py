@@ -16,18 +16,16 @@ class Position(ConductorParameter, DeviceProxy):
         sequence = self.server.parameters.get('sequencer.sequence')
         previous_sequence = self.server.parameters.get('sequencer.previous_sequence')
         
-        value = self.value
-        intersection = np.intersect1d(sequence.value, self.sequence_positions.keys())
+        previous_value = self.value
         if sequence.loop:
             intersection = np.intersect1d(previous_sequence.value, self.sequence_positions.keys())
-            if intersection:
-                value = self.sequence_positions[intersection[-1]]
-        elif intersection:
+        else:
+            intersection = np.intersect1d(sequence.value, self.sequence_positions.keys())
+        if intersection:
             self.value = self.sequence_positions[intersection[-1]]
                 
-        if self.value != value:
-            self.value = value
-            self.move_absolute(self.value)
+        if self.value != previous_value:
+            self.position = self.value
         
 
 Parameter = Position
