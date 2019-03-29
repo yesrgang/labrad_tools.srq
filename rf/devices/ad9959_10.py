@@ -1,3 +1,5 @@
+import rf.devices.ad9959.device 
+reload(rf.devices.ad9959.device)
 from rf.devices.ad9959.device import AD9959
 
 class Channel(AD9959):
@@ -7,6 +9,7 @@ class Channel(AD9959):
     board_num = 0
     channel = 2
 
-    default_frequency = 0e6
+    default_frequency = 122e6
+    default_amplitude = 0.66
 
 Device = Channel

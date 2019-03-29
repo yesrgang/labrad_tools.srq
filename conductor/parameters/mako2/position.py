@@ -7,8 +7,12 @@ class Position(ConductorParameter, DeviceProxy):
     priority = 1
     sequence_positions = {
         'image': 2.8,
-        'image-red': 18.7,
-        'image-red-sigma': 18.7,
+        'image-red': 18,
+        'image-red-sigma': 18,
+        'image-red-sigma-osg': 18,
+        'image-red-sigma-osg-m': 18,
+        'image-osg2-red': 18,
+        'image-osg2-red-m': 18,
         }
     autostart = True
     
