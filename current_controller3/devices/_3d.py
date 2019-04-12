@@ -1,12 +1,11 @@
 from current_controller3.devices.ldc80 import LDC80, LDC80Proxy
 
 class Device(LDC80):
-    autostart = False
-    gpib_address = 'GPIB0::9::INSTR'
-
-    pro8_slot = 2
-    default_current = 0.1500
-    current_range = [0.0, 0.155]
+    _current_range = (0.0, 0.155)
+    _gpib_address = 'GPIB0::9::INSTR'
+    _locked_threshold = 10.4e-3
+    _pro8_slot = 2
+    _relock_stepsize = 0.001
 
 class DeviceProxy(Device, LDC80Proxy):
-    gpib_servername = 'yesr20_visa2'
+    _gpib_servername = 'yesr20_visa2'
