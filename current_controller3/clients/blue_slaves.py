@@ -2,6 +2,7 @@ from current_controller3.devices._3d import DeviceProxy as _3DProxy
 from current_controller3.devices._2d import DeviceProxy as _2DProxy
 from current_controller3.devices.zs import DeviceProxy as ZSProxy
 from current_controller3.devices._3d2 import DeviceProxy as _3D2Proxy
+from current_controller3.devices._3d3 import DeviceProxy as _3D3Proxy
 from current_controller3.clients.default import CurrentControllerClient
 from current_controller3.clients.default import MultipleClientContainer
 
@@ -26,6 +27,11 @@ class _3D2Client(CurrentControllerClient):
     update_time = 200
     DeviceProxy = _3D2Proxy
 
+class _3D3Client(CurrentControllerClient):
+    name = '3d3'
+    update_time = 200
+    DeviceProxy = _3D3Proxy
+
 class MyClientContainer(MultipleClientContainer):
     name = 'blue slaves'
 
@@ -36,7 +42,7 @@ if __name__ == '__main__':
     qt4reactor.install()
     from twisted.internet import reactor
 
-    widgets = [_3DClient(reactor), _2DClient(reactor), ZSClient(reactor), _3D2Client(reactor)]
+    widgets = [_3DClient(reactor), _2DClient(reactor), ZSClient(reactor), _3D2Client(reactor), _3D3Client(reactor)]
     widget = MyClientContainer(widgets, reactor)
     widget.show()
     reactor.run()
