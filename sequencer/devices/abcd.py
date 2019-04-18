@@ -122,7 +122,7 @@ class ABCD(YeSrDigitalBoard):
         YeSrDigitalChannel(loc=['C', 4], name='LR/HR [hi/lo]', mode='auto', manual_output=False, invert=False),
         YeSrDigitalChannel(loc=['C', 5], name='HR AOM Sweep', mode='auto', manual_output=False, invert=False),
         YeSrDigitalChannel(loc=['C', 6], name='HR Demod Sweep', mode='auto', manual_output=False, invert=False),
-        YeSrDigitalChannel(loc=['C', 7], name='V Clock Switch', mode='manual', manual_output=True, invert=False),
+        YeSrDigitalChannel(loc=['C', 7], name='V Clock Switch', mode='manual', manual_output=True, invert=True),
         YeSrDigitalChannel(loc=['C', 8], name='Clock Servo Enable', mode='manual', manual_output=True, invert=False),
         YeSrDigitalChannel(loc=['C', 9], name='RM Table Shutters', mode='manual', manual_output=True, invert=False),
         YeSrDigitalChannel(loc=['C', 10], name='RM Horizontal Shutter', mode='auto', manual_output=False, invert=False),
