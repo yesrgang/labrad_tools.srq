@@ -8,29 +8,24 @@ from current_controller3.clients.default import MultipleClientContainer
 
 
 class _3DClient(CurrentControllerClient):
-    name = '3d'
-    update_time = 200
     DeviceProxy = _3DProxy
+    name = '3d'
 
 class _2DClient(CurrentControllerClient):
-    name = '2d'
-    update_time = 200
     DeviceProxy = _2DProxy
+    name = '2d'
 
 class ZSClient(CurrentControllerClient):
-    name = 'zs'
-    update_time = 200
     DeviceProxy = ZSProxy
+    name = 'zs'
 
 class _3D2Client(CurrentControllerClient):
-    name = '3d2'
-    update_time = 200
     DeviceProxy = _3D2Proxy
+    name = '3d2'
 
 class _3D3Client(CurrentControllerClient):
-    name = '3d3'
-    update_time = 200
     DeviceProxy = _3D3Proxy
+    name = '3d3'
 
 class MyClientContainer(MultipleClientContainer):
     name = 'blue slaves'
