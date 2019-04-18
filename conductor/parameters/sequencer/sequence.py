@@ -24,7 +24,7 @@ class Sequence(ConductorParameter):
     ok_master_interfacename = '1616000EHA'
 
     sequencer_servername = 'sequencer'
-    sequencer_devices = ['abcd', 'e', 'f', 'g']
+    sequencer_devices = ['abcd', 'e', 'f', 'g', 'h']
     sequencer_master_device = 'abcd'
     
     def initialize(self, config):
