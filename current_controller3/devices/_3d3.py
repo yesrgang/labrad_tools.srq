@@ -7,5 +7,5 @@ class Device(LDC50):
     _locked_threshold = 160e-3
 
 class DeviceProxy(Device, LDC50):
-    def __init__(self, cxn, **kwargs):
+    def __init__(self, cxn=None, **kwargs):
         LDC50.__init__(self, **kwargs)
