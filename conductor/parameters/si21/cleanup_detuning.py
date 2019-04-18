@@ -56,9 +56,12 @@ class CleanupDetuning(ConductorParameter):
             # second aom on SrQ table to keep FNC VCO within output bandwidth.
             srq_steer = srq_dist_aom + srq_table_offset_aom - srq_dist_fnc
 
+            srq_dist_fnc_demod = -2 * srq_dist_fnc
+
             request = {
                 'clock_aom.frequency': float(srq_steer),
                 'clock_fiber_aom.demod_frequency': float(srq_dist_fnc),
+                'clock_fiber_aom.demod_cleanup_frequency': float(-2 * srq_dist_fnc),
                 }
             self.server._set_parameter_values(request)
         
