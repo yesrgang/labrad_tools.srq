@@ -63,6 +63,7 @@ class ProbeDetuning(ConductorParameter):
                 'clock_aom.hr_frequency': float(srq_steer),
                 'clock_fiber_aom.hr_demod_frequency': float(srq_dist_fnc),
                 'vclock_aom.frequency': float(srq_vsteer),
+                'clock_fiber_aom.demod_sweep_frequency': float(-2 * srq_dist_fnc),
 #                'vclock_aom.frequency': float(-2 * srq_dist_fnc),
 #                'si21.visible_comb_tooth_frequency':  
                 }
