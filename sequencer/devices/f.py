@@ -6,7 +6,6 @@ class F(YeSrAnalogBoard):
     
     conductor_servername = 'conductor'
     ok_servername = 'yesr20_ok'
-#    ok_device_id = 'srq analog 2'
     ok_interface = '1401000AT3'
     
     is_master = False
