@@ -5,21 +5,13 @@ class Device(AD9959):
     arduino_address = 0
     channel_number = 3
     
-    default_amplitude = 0.76
-    default_frequency = 122e6
-    default_sweep = 'amplitude'
-
-    def __init__(self, **kwargs):
-        AD9959.__init__(self, **kwargs)
-        self.amplitude = self.default_amplitude
-        self.frequency = self.default_frequency
-        self.sweep = self.default_sweep
+    def _setup(self):
+        self.amplitude = 0.76
+        self.frequency = 122e6
+        self.sweep = 'amplitude'
 
 class DeviceProxy(Device, AD9959Proxy):
-    serial_servername = 'yesr5_serial'
-
+    _serial_servername = 'yesr5_serial'
+    
     def __init__(self, **kwargs):
-        AD9959Proxy.__init__(self, **kwargs)
-        self.amplitude = self.default_amplitude
-        self.frequency = self.default_frequency
-        self.sweep = self.default_sweep
+       AD9959Proxy.__init__(self, **kwargs)
