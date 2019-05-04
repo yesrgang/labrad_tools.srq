@@ -6,7 +6,7 @@ from update.proxy import UpdateProxy
 
 
 class IsLocked(ConductorParameter, _2d.DeviceProxy):
-    autostart = False
+    autostart = True
     priority = 1
 
     def initialize(self, config):

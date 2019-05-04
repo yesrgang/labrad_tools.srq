@@ -5,7 +5,7 @@ from conductor.parameter import ConductorParameter
 
 class Frequency(ConductorParameter):
     priority = 1
-    autostart = True
+    autostart = False
     call_in_thread = True
     rf_devicename = 'beta'
 
