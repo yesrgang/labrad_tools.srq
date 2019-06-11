@@ -4,7 +4,7 @@ from collections import deque
 
 class DitherLog(ConductorParameter):
     priority = 7
-    autostart = True
+    autostart = False
     value_type = 'list'
     value_log = deque([None, None, None], maxlen=3)
     shot_number_log = deque([None, None, None], maxlen=3)

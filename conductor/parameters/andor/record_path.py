@@ -18,6 +18,7 @@ class RecordPath(ConductorParameter):
         'image_ft': 'eg',
         'image-fast': 'fast-g',
         'image-clock-fast': 'fast-eg',
+        'image-clock-fast-side': 'fast-eg',
         }
 
     data_filename = '{}.ikon'

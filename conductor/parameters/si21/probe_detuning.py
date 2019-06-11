@@ -60,8 +60,8 @@ class ProbeDetuning(ConductorParameter):
 #            optical_comb_tooth = f_sr - self.value
 
             request = {
-                'clock_aom.hr_frequency': float(srq_steer),
-                'clock_fiber_aom.hr_demod_frequency': float(srq_dist_fnc),
+#                'clock_aom.hr_frequency': float(srq_steer),
+#                'clock_fiber_aom.hr_demod_frequency': float(srq_dist_fnc),
                 'vclock_aom.frequency': float(srq_vsteer),
                 'clock_fiber_aom.demod_sweep_frequency': float(-2 * srq_dist_fnc),
 #                'vclock_aom.frequency': float(-2 * srq_dist_fnc),

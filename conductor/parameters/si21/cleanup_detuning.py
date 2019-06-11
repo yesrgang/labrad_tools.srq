@@ -59,8 +59,8 @@ class CleanupDetuning(ConductorParameter):
             srq_dist_fnc_demod = -2 * srq_dist_fnc
 
             request = {
-                'clock_aom.frequency': float(srq_steer),
-                'clock_fiber_aom.demod_frequency': float(srq_dist_fnc),
+#                'clock_aom.frequency': float(srq_steer),
+#                'clock_fiber_aom.demod_frequency': float(srq_dist_fnc),
                 'clock_fiber_aom.demod_cleanup_frequency': float(-2 * srq_dist_fnc),
                 }
             self.server._set_parameter_values(request)

@@ -24,7 +24,7 @@ class FeedbackPoint(ConductorParameter):
     locks = {}
     #priority = 8
     priority = 18
-    autostart = True
+    autostart = False
     value_type = 'list'
 
     def initialize(self, config):

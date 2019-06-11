@@ -2,7 +2,7 @@ from rf.devices.hp_signal_generator.device import HPSignalGenerator
 
 
 class Alpha(HPSignalGenerator):
-    autostart = True
+    autostart = False
     visa_servername = 'yesr9_visa'
     visa_address = 'GPIB0::19::INSTR'
 

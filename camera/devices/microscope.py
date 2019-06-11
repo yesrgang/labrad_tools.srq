@@ -6,6 +6,9 @@ AndorSDKProxy.verbose = False
 class Microscope(IKon):
     andor_servername = 'yesr10_andor'
     andor_serialnumber = 11115
+
+    compression = 'gzip'
+    compression_level = 0
     
     def initialize(self, config):
         super(IKon, self).initialize(config)

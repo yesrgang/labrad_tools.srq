@@ -1,7 +1,7 @@
 from rf.devices.ag335xxx.device import AG335xxx
 
 class Beta(AG335xxx):
-    autostart = True
+    autostart = False
     vxi11_address = "192.168.1.3"
     source = 1
     

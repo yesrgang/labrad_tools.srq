@@ -34,7 +34,7 @@ class DitherPoint(ConductorParameter):
     locks = {}
     #priority = 7
     priority = 17
-    autostart = True
+    autostart = False
     value_type = 'list'
     value_log = deque([None, None, None], maxlen=3)
     shot_number_log = deque([None, None, None], maxlen=3)

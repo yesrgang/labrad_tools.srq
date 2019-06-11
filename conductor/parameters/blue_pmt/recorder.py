@@ -9,7 +9,7 @@ from twisted.internet.defer import inlineCallbacks
 from conductor.parameter import ConductorParameter
 
 class Recorder(ConductorParameter):
-    autostart = True
+    autostart = False
     priority = 9
     data_filename = '{}.blue_pmt'
     nondata_filename = '{}/blue_pmt'
