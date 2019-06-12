@@ -6,7 +6,7 @@ class Device(AD9959):
     _channel_num = 0
 
     def _setup(self):
-        self.amplitude = 0.9
+        self.amplitude = 0.7
         self.frequency = 66e6
 #        self.sweep = 'amplitude'
 
