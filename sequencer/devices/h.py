@@ -5,7 +5,7 @@ class H(YeSrAnalogBoard):
     autostart = True
     
     conductor_servername = 'conductor'
-    ok_servername = 'yesr5_ok'
+    ok_servername = 'yesr20_ok'
     ok_interface = '1541000D38'
 
     is_master = False
