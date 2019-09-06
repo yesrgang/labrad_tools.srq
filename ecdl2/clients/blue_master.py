@@ -8,7 +8,7 @@ class BlueMasterClient(ECDLClient):
     
     spinboxWidth = 80
     piezoVoltageDisplayUnits = [(0, 'V')]
-    piezoVoltageDigits = 1
+    piezoVoltageDigits = 2
     diodeCurrentDisplayUnits = [(0, 'mA')]
     diodeCurrentDigits = 1
 
