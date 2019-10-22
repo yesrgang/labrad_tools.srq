@@ -1,4 +1,4 @@
-from rf2.devices.sg382 import SG382
+from rf2.devices.sg380 import SG380
 
-class Device(SG382):
+class Device(SG380):
     vxi11_address = '192.168.1.43'
