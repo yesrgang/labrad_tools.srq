@@ -6,8 +6,8 @@ class Device(AD9959):
     _channel_num = 0
 
     def _setup(self):
-        self.amplitude = 0.7
-        self.frequency = 66e6
+        self.amplitude = 0.73
+        self.frequency = 120e6
 #        self.sweep = 'amplitude'
 
 class DeviceProxy(Device, AD9959Proxy):
