@@ -11,14 +11,14 @@ class F(YeSrAnalogBoard):
     is_master = False
 
     channels = [
-        YeSrAnalogChannel(loc=0, name='Beta FM', mode='auto', manual_output=0.0),
-        YeSrAnalogChannel(loc=1, name='813 H1 Intensity', mode='auto', manual_output=0.0),
-        YeSrAnalogChannel(loc=2, name='813 H2 Intensity', mode='auto', manual_output=0.0),
-        YeSrAnalogChannel(loc=3, name='813 V Intensity', mode='auto', manual_output=0.0),
-        YeSrAnalogChannel(loc=4, name='Clock Intensity', mode='auto', manual_output=0.0),
-        YeSrAnalogChannel(loc=5, name='813H Mixer', mode='manual', manual_output=-2.0),
-        YeSrAnalogChannel(loc=6, name='813V Mixer', mode='manual', manual_output=-2.0),
-        YeSrAnalogChannel(loc=7, name='Spin Pol. Intensity', mode='auto', manual_output=0.0),
+        YeSrAnalogChannel(loc=0, name='DACF00', mode='auto', manual_output=0.0),
+        YeSrAnalogChannel(loc=1, name='DACF01', mode='auto', manual_output=0.0),
+        YeSrAnalogChannel(loc=2, name='DACF02', mode='auto', manual_output=0.0),
+        YeSrAnalogChannel(loc=3, name='DACF03', mode='auto', manual_output=0.0),
+        YeSrAnalogChannel(loc=4, name='DACF04', mode='auto', manual_output=0.0),
+        YeSrAnalogChannel(loc=5, name='DACF05', mode='auto', manual_output=0.0),
+        YeSrAnalogChannel(loc=6, name='DACF06', mode='auto', manual_output=0.0),
+        YeSrAnalogChannel(loc=7, name='DACF07', mode='auto', manual_output=0.0),
         ]
 
 

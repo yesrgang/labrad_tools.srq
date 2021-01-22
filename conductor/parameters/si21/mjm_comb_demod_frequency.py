@@ -2,7 +2,7 @@ from conductor.parameter import ConductorParameter
 
 class MJMCombDemodFrequency(ConductorParameter):
     priority = 1
-    autostart = True
+    autostart = False
     def initialize(self, config):
         super(MJMCombDemodFrequency, self).initialize(config)
         self.connect_to_labrad()

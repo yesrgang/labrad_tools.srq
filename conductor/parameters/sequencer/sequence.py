@@ -17,26 +17,27 @@ class Sequence(ConductorParameter):
 
     loop = True
     call_in_thread = False
-    #call_in_thread = True
 
     ok_master_servername = 'yesr20_ok'
-    #ok_master_interfacename = '14290008VF'
     ok_master_interfacename = '1616000EHA'
 
     sequencer_servername = 'sequencer'
-    sequencer_devices = ['abcd', 'e', 'f', 'g', 'h']
+#    sequencer_devices = ['abcd', 'e', 'f', 'g', 'h', 'v']
+    sequencer_devices = ['abcd', 'e', 'g', 'h', 'v']
+#    sequencer_devices = ['abcd', 'g', 'h', 'v']
+
     sequencer_master_device = 'abcd'
     
     def initialize(self, config):
         super(Sequence, self).initialize(config)
-        try:
-            password = os.getenv('SR1LABRADPASSWORD')
-            self.sr1_cxn = labrad.connect(host='yeelmo.colorado.edu', password=password)
-            sr1_timestamp = self.sr1_cxn.time.time()
-        except Exception, e:
-            print e
-            print 'sr1 time server not found'
-            self.sr1_cxn = None
+#        try:
+#            password = os.getenv('SR1LABRADPASSWORD')
+#            self.sr1_cxn = labrad.connect(host='yeelmo.colorado.edu', password=password)
+#            sr1_timestamp = self.sr1_cxn.time.time()
+#        except Exception, e:
+#            print e
+#            print 'sr1 time server not found'
+#            self.sr1_cxn = None
 
         self.connect_to_labrad()
         self.ok_server = getattr(self.cxn, self.ok_master_servername)
@@ -123,9 +124,9 @@ class Sequence(ConductorParameter):
 
     def _mark_timestamp(self):
         request = {'timestamp': time.time()}
-        if self.sr1_cxn is not None:
-            sr1_timestamp = self.sr1_cxn.time.time()
-            request.update({'sr1_timestamp': sr1_timestamp})
+#        if self.sr1_cxn is not None:
+#            sr1_timestamp = self.sr1_cxn.time.time()
+#            request.update({'sr1_timestamp': sr1_timestamp})
         conductor_server = self.cxn.conductor
         conductor_server.set_parameter_values(json.dumps(request))
 

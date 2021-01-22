@@ -1,4 +1,6 @@
 from conductor.parameter import ConductorParameter
+import rf2.devices.clock_demod_cleanup
+reload(rf2.devices.clock_demod_cleanup)
 from rf2.devices.clock_demod_cleanup import Device
 
 class Parameter(ConductorParameter, Device):

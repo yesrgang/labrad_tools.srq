@@ -6,7 +6,7 @@ class ProbeDetuning(ConductorParameter):
     """
     #priority = 3
     priority = 13
-    autostart = True
+    autostart = False
     
     visible_tooth = 1716882.0
     ir_comb_tooth = 777577.0
@@ -62,7 +62,7 @@ class ProbeDetuning(ConductorParameter):
             request = {
 #                'clock_aom.hr_frequency': float(srq_steer),
 #                'clock_fiber_aom.hr_demod_frequency': float(srq_dist_fnc),
-                'vclock_aom.frequency': float(srq_vsteer),
+#                'vclock_aom.frequency': float(srq_vsteer),
                 'clock_fiber_aom.demod_sweep_frequency': float(-2 * srq_dist_fnc),
 #                'vclock_aom.frequency': float(-2 * srq_dist_fnc),
 #                'si21.visible_comb_tooth_frequency':  

@@ -6,7 +6,8 @@ class AOM(AD9854):
     serial_address = "/dev/ttyACM649383339323514011E0"
     subaddress = 2
 
-    default_frequency = 125e6
+#    default_frequency = 125e6
+    default_frequency = 80e6
     default_amplitude = 1
 
 Device = AOM

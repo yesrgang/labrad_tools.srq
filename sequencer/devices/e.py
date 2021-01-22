@@ -1,25 +1,24 @@
-from sequencer.devices.yesr_analog_board.device import YeSrAnalogBoard
-from sequencer.devices.yesr_analog_board.channel import YeSrAnalogChannel
+from sequencer.devices.yesr_analog_board2.device import YeSrAnalogBoard
+from sequencer.devices.yesr_analog_board2.channel import YeSrAnalogChannel
 
 class E(YeSrAnalogBoard):
     autostart = True
     
     conductor_servername = 'conductor'
     ok_servername = 'yesr20_ok'
-    #ok_device_id = 'sr2 dac1'
     ok_interface = '14290008VV'
     
     is_master = False
 
     channels = [
-        YeSrAnalogChannel(loc=0, name='Alpha Intensity', mode='auto', manual_output=0.0),
-        YeSrAnalogChannel(loc=1, name='Beta Intensity', mode='auto', manual_output=0.0),
-        YeSrAnalogChannel(loc=2, name='X Comp. Coil', mode='auto', manual_output=0.0),
-        YeSrAnalogChannel(loc=3, name='Y Comp. Coil', mode='auto', manual_output=0.0),
-        YeSrAnalogChannel(loc=4, name='Z Comp. Coil', mode='auto', manual_output=0.0),
-        YeSrAnalogChannel(loc=5, name='MOT Coil', mode='auto', manual_output=0.0),
-        YeSrAnalogChannel(loc=6, name='HODT Intensity', mode='auto', manual_output=0.0),
-        YeSrAnalogChannel(loc=7, name='VODT Intensity', mode='auto', manual_output=0.0),
+        YeSrAnalogChannel(loc=0, name='DACE00', mode='auto', manual_output=0.0),
+        YeSrAnalogChannel(loc=1, name='DACE01', mode='auto', manual_output=0.0),
+        YeSrAnalogChannel(loc=2, name='DACE02', mode='auto', manual_output=0.0),
+        YeSrAnalogChannel(loc=3, name='DACE03', mode='auto', manual_output=0.0),
+        YeSrAnalogChannel(loc=4, name='DACE04', mode='auto', manual_output=0.0),
+        YeSrAnalogChannel(loc=5, name='DACE05', mode='auto', manual_output=0.0),
+        YeSrAnalogChannel(loc=6, name='DACE06', mode='auto', manual_output=0.0),
+        YeSrAnalogChannel(loc=7, name='DACE07', mode='auto', manual_output=0.0),
         ]
 
 
