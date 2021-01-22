@@ -1,7 +1,6 @@
 from rf2.devices.keysight33600 import Keysight33600, Keysight33600Proxy
 
 class Device(Keysight33600):
-    
     _amplitude_range = (-20, 20)
     _amplitude_units = 'dBm'
     _frequency_range = (250e3, 120e6)
