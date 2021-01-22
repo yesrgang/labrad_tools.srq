@@ -2,7 +2,7 @@ from ecdl2.devices.aosense_ecdl import AOSenseECDL, AOSenseECDLProxy
 
 class Device(AOSenseECDL):
     _serial_address = 'COM5'
-    _default_diode_current = 130.99 # [mA]
+    _default_diode_current = 135.0 # [mA]
 
 class DeviceProxy(Device, AOSenseECDLProxy):
     _serial_servername = 'yesr8_serial'

@@ -72,6 +72,16 @@ class RunBlueMOT(ButtonActionWidget):
         request = {'sequencer.sequence': ['blue_mot_ss']}
         yield server.set_parameter_values(json.dumps(request))
 
+class RunLightsOff(ButtonActionWidget):
+    name = 'Run Lights Off'
+    servername = 'conductor'
+
+    @inlineCallbacks
+    def onButtonPressed(self):
+        server = yield self.cxn.get_server(self.servername)
+        request = {'sequencer.sequence': ['lights-off']}
+        yield server.set_parameter_values(json.dumps(request))
+
 class StopExperiment(ButtonActionWidget):
     name = 'Stop Experiment'
     servername = 'conductor'
@@ -269,6 +279,7 @@ if __name__ == '__main__':
     from twisted.internet import reactor
     widgets = [
         RunBlueMOT(reactor),
+        RunLightsOff(reactor),
         StopExperiment(reactor),
         ]
     widget = MultipleActionsContainer(widgets, reactor)
