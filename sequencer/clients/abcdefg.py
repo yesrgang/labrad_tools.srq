@@ -77,7 +77,7 @@ class TestClient(SequencerClient):
         "@D12": "?TTL D12",
         "@D13": "?TTL D13",
         "@D14": "AOSense Heat En.",
-        "@D14": "Trigger",
+        "@D15": "Trigger",
         }
 
 
