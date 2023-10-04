@@ -1,0 +1,20 @@
+Generate SSH key pair
+ -> open PowerShell
+ -> run: ssh-keygen -t ecdsa -b 521
+ -> (don't generate a passphrase)
+ -> add public key (C:\Users\myusername\.ssh\id_ecdsa.pub) to accepted keys on github.com
+
+Configure (existing) git repo for "backup"
+ -> open console and navigate to the repo
+ -> show current git configuration by running
+         git config --list
+         git config --local --list
+ -> run: git config --local user.name="<git_username>"
+         git config --local user.email="<git_email>"
+         git remote add backup <ssh_github_url>
+
+Establish first SSH connection and push current contents of repo
+ -> run: git push -u backup master
+ -> acknowledge SSH connection to github.com
+
+Create task via Task Scheduler which executes git_backup.bat daily
