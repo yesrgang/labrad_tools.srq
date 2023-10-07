@@ -1,9 +1,9 @@
 from current_controller3.devices.ldc80 import LDC80, LDC80Proxy
 
 class Device(LDC80):
-    _current_range = (0.0, 0.155)
+    _current_range = (0.0, 0.157)
     _visa_address = 'GPIB0::9::INSTR'
-    _locked_threshold = 7.4e-3
+    _locked_threshold = 9.3e-3
     _pro8_slot = 8
     _relock_stepsize = 0.002
 

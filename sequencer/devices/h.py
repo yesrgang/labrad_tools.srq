@@ -16,7 +16,7 @@ class H(YeSrAnalogBoard):
         YeSrAnalogChannel(loc=0, name='3D1 Intensity', mode='auto', manual_output=0.0),
         YeSrAnalogChannel(loc=1, name='3D2 Intensity', mode='auto', manual_output=0.0),
         YeSrAnalogChannel(loc=2, name='3D3 Intensity', mode='auto', manual_output=0.0),
-        YeSrAnalogChannel(loc=3, name='461 Detuning', mode='manual', manual_output=-0.8, alt_keys=['461 Detuning@F05', '813 H Mixer@F05', 'DACF05@F05']),
+        YeSrAnalogChannel(loc=3, name='813 H2 Intensity', mode='auto', manual_output=0.0, alt_keys=['813 H2 Intensity@F05', '813 H Mixer@F05', 'DACF05@F05']),
         YeSrAnalogChannel(loc=4, name='Clock Intensity', mode='auto', manual_output=0.0, alt_keys=['Clock Intensity@F04', 'DACF04@F04']),
         YeSrAnalogChannel(loc=5, name='813 H1 Intensity', mode='auto', manual_output=0.0, alt_keys=['813 H1 Intensity', 'DACF01@F01']),
         YeSrAnalogChannel(loc=6, name='DACH06', mode='manual', manual_output=-1.0),

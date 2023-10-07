@@ -100,6 +100,20 @@ class SideProbeYClient(PicomotorClient):
     update_time = 100
     spinbox_width = 70
 
+class TenS4XClient(PicomotorClient):
+    name = 'tens4_x'
+    servername = 'picomotor'
+    position_range = [-1e5, 1e5]
+    update_time = 100
+    spinbox_width = 70
+
+class TenS4YClient(PicomotorClient):
+    name = 'tens4_y'
+    servername = 'picomotor'
+    position_range = [-1e5, 1e5]
+    update_time = 100
+    spinbox_width = 70
+
 class MyWidgetContainer(MultipleWidgetsContainer):
     name = 'xodt positions'
     widgets = [
@@ -110,6 +124,7 @@ class MyWidgetContainer(MultipleWidgetsContainer):
         (OSGXClient, OSGYClient),
         (SideImageXClient, SideImageYClient),
         (SideProbeXClient, SideProbeYClient),
+        (TenS4XClient, TenS4YClient),
         ]
 
 Client = MyWidgetContainer

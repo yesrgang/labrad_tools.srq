@@ -45,10 +45,10 @@ class Client(QtGui.QWidget):
         self.pathBox = QtGui.QLineEdit()
 
         self.processBox = QtGui.QComboBox()
+        self.processBox.addItem('Fluorescence Image')
         self.processBox.addItem('Absorption Counts')
         self.processBox.addItem('Absorption Image')
         self.processBox.addItem('Absorption Bright')
-        self.processBox.addItem('Fluorescence Counts')
 
         self.parameterBox = QtGui.QTextEdit()
         self.parameterBox.setText(
@@ -69,7 +69,9 @@ class Client(QtGui.QWidget):
         self.figure = Figure()
         self.canvas = FigureCanvas(self.figure)
         self.toolbar = NavigationToolbar(self.canvas, self)
-        self.figure.add_subplot(111)
+        ax = self.figure.add_subplot(111)
+        ax.set_xlim(0, 1023)
+        ax.set_ylim(0, 1023)
 
         self.layout = QtGui.QGridLayout()
         self.layout.setSpacing(0)
@@ -113,11 +115,13 @@ class Client(QtGui.QWidget):
 
     
     def setupAbsorptionCounts(self):
+        xmin, xmax = self.figure.get_axes()[0].get_xlim()
+        ymin, ymax = self.figure.get_axes()[0].get_ylim()
         exec(self.getParameters())
         self.figure.clear()
         ax = self.figure.add_subplot(111)
-        ax.set_xlim(0, 1023)
-        ax.set_ylim(0, 1023)
+        ax.set_xlim(xmin, xmax)
+        ax.set_ylim(ymin, ymax)
         ax.contour(norm, colors='r')
         ax.contour(cloud, colors='w')
         self.canvas.draw()
@@ -125,14 +129,10 @@ class Client(QtGui.QWidget):
     def processAbsorptionCounts(self, image_path):
         fit = False
         exec(self.getParameters())
-#        h5f = h5py.File(os.path.join(DATADIR, "20210124/abs-ref#1/avg.ikon.hdf5"), "r")
-#        ref_image = np.array(h5f['image'], dtype='float')
-#        ref_bright = np.array(h5f['bright'], dtype='float')
-#        h5f.close()
-
-        with open(os.path.join(DATADIR, '20210605/ref#0/mean.ikon.npy'), 'rb') as f:
-            ref_image = np.load(f)
-            ref_bright = np.load(f)
+        h5f = h5py.File(os.path.join(DATADIR, "20210124/abs-ref#1/avg.ikon.hdf5"), "r")
+        ref_image = np.array(h5f['image'], dtype='float')
+        ref_bright = np.array(h5f['bright'], dtype='float')
+        h5f.close()
         
 
         h5f = h5py.File(image_path, "r")
@@ -168,10 +168,8 @@ class Client(QtGui.QWidget):
 
         self.outputBox.setText(
                 "Total Counts: {:.2e}\n".format(tot)
-                + "Fit Center: {:.1f}, {:.1f}\n".format(xfit, yfit)
-                + "Image counts: {:.1f}, {:.1f}\n".format(np.max(image[cloud]), np.min(image[cloud])) 
-                + "Bright counts: {:.1f}, {:.1f}\n".format(np.max(bright[cloud]), np.min(bright[cloud]) )
-)
+                + "Fit Center: {:.1f}, {:.1f}\n".format(xfit, yfit))
+        
         xmin, xmax = self.figure.get_axes()[0].get_xlim()
         ymin, ymax = self.figure.get_axes()[0].get_ylim()
         self.figure.clear()
@@ -184,11 +182,13 @@ class Client(QtGui.QWidget):
         self.canvas.draw()
     
     def setupAbsorptionImage(self):
+        xmin, xmax = self.figure.get_axes()[0].get_xlim()
+        ymin, ymax = self.figure.get_axes()[0].get_ylim()
         exec(self.getParameters())
         self.figure.clear()
         ax = self.figure.add_subplot(111)
-        ax.set_xlim(0, 1023)
-        ax.set_ylim(0, 1023)
+        ax.set_xlim(xmin, xmax)
+        ax.set_ylim(ymin, ymax)
         ax.contour(norm, colors='r')
         ax.contour(cloud, colors='w')
         self.canvas.draw()
@@ -204,20 +204,25 @@ class Client(QtGui.QWidget):
         image = np.array(h5f['image'], dtype='float') - ref_image
         bright = np.array(h5f['bright'], dtype='float') - ref_bright
         h5f.close()
-        
+        xmin, xmax = self.figure.get_axes()[0].get_xlim()
+        ymin, ymax = self.figure.get_axes()[0].get_ylim() 
         self.figure.clear()
         ax = self.figure.add_subplot(111)
         ax.imshow(image, cmap='inferno', origin='lower')
+        ax.set_xlim(xmin, xmax)
+        ax.set_ylim(ymin, ymax)
         ax.contour(norm, colors='r')
         ax.contour(cloud, colors='w')
         self.canvas.draw()
     
     def setupAbsorptionBright(self):
+        xmin, xmax = self.figure.get_axes()[0].get_xlim()
+        ymin, ymax = self.figure.get_axes()[0].get_ylim()
         exec(self.getParameters())
         self.figure.clear()
         ax = self.figure.add_subplot(111)
-        ax.set_xlim(0, 1023)
-        ax.set_ylim(0, 1023)
+        ax.set_xlim(xmin, xmax)
+        ax.set_ylim(ymin, ymax)
         ax.contour(norm, colors='r')
         ax.contour(cloud, colors='w')
         self.canvas.draw()
@@ -234,58 +239,46 @@ class Client(QtGui.QWidget):
         bright = np.array(h5f['bright'], dtype='float') - ref_bright
         h5f.close()
         
+        xmin, xmax = self.figure.get_axes()[0].get_xlim()
+        ymin, ymax = self.figure.get_axes()[0].get_ylim()
         self.figure.clear()
         ax = self.figure.add_subplot(111)
         ax.imshow(bright, cmap='inferno', origin='lower')
         ax.contour(norm, colors='r')
         ax.contour(cloud, colors='w')
+        ax.set_xlim(xmin, xmax)
+        ax.set_ylim(ymin, ymax)
         self.canvas.draw()
-    
-    def setupFluorescenceCounts(self):
+
+    def processFluorescenceImage(self, image_path):
+        exec(self.getParameters())
+#        h5f = h5py.File(os.path.join(DATADIR, "20210121/abs-ref#0/ref.ikon.hdf5"), "r")
+#        ref_image = np.array(h5f['image'], dtype='float')
+#        ref_bright = np.array(h5f['bright'], dtype='float')
+#        h5f.close()
+
+        h5f = h5py.File(image_path, "r")
+        image = np.array(h5f['image'], dtype='float') #- ref_image
+#        bright = np.array(h5f['bright'], dtype='float') #- ref_bright
+        h5f.close()
+        
+        self.figure.clear()
+        ax = self.figure.add_subplot(111)
+        ax.imshow(image, cmap='inferno', origin='lower')
+#        ax.contour(norm, colors='r')
+        ax.contour(cloud, colors='w')
+        self.canvas.draw()
+
+    def setupFluorescenceImage(self):
         exec(self.getParameters())
         self.figure.clear()
         ax = self.figure.add_subplot(111)
         ax.set_xlim(0, 1023)
         ax.set_ylim(0, 1023)
-        ax.contour(norm, colors='r')
+#        ax.contour(norm, colors='r')
         ax.contour(cloud, colors='w')
         self.canvas.draw()
 
-    def processFluorescenceCounts(self, image_path):
-        fit = False
-        exec(self.getParameters())
-#        h5f = h5py.File(os.path.join(DATADIR, "20210124/abs-ref#1/avg.ikon.hdf5"), "r")
-#        ref_image = np.array(h5f['image'], dtype='float')
-#        ref_bright = np.array(h5f['bright'], dtype='float')
-#        h5f.close()
-        
-
-        h5f = h5py.File(image_path, "r")
-        image = np.array(h5f['image'], dtype='float') #- ref_image
-        bright = np.array(h5f['bright'], dtype='float') #- ref_bright
-        h5f.close()
-
-        bright += image[norm].mean() - bright[norm].mean()
-
-        diff = image - bright
-        counts = diff * GAIN * 1e-6 / PULSE_LENGTH
-
-        tot = counts[cloud].sum()
-        
-        self.outputBox.setText('total counts: {:.2e}'.format(tot) + 
-                               'max counts: {:.3e}'.format(np.max(counts[cloud])))
-
-
-        xmin, xmax = self.figure.get_axes()[0].get_xlim()
-        ymin, ymax = self.figure.get_axes()[0].get_ylim()
-        self.figure.clear()
-        ax = self.figure.add_subplot(111)
-        ax.imshow(counts, cmap='inferno', origin='lower')
-        ax.set_xlim(xmin, xmax)
-        ax.set_ylim(ymin, ymax)
-        ax.contour(norm, colors='r')
-        ax.contour(cloud, colors='w')
-        self.canvas.draw()
 
     def displayImage(self):
         image_path = self.getImagePath()
@@ -295,18 +288,18 @@ class Client(QtGui.QWidget):
             self.processAbsorptionImage(image_path)
         elif self.processBox.currentText() == "Absorption Bright":
             self.processAbsorptionBright(image_path)
-        elif self.processBox.currentText() == "Fluorescence Counts":
-            self.processFluorescenceCounts(image_path)
+        elif self.processBox.currentText() == "Fluorescence Image":
+            self.processFluorescenceImage(image_path)
     
     def updateProcess(self):
         if self.processBox.currentText() == "Absorption Counts":
             self.setupAbsorptionCounts()
-        elif self.processBox.currentText() == "Absorption Image":
+        if self.processBox.currentText() == "Absorption Image":
             self.setupAbsorptionImage()
-        elif self.processBox.currentText() == "Absorption Bright":
+        if self.processBox.currentText() == "Absorption Bright":
             self.setupAbsorptionBright()
-        elif self.processBox.currentText() == "Fluorescence Counts":
-            self.setupFluorescenceCounts()
+        if self.processBox.currentText() == "Fluorescence Image":
+            self.setupFluorescenceImage()
 
     def ckiseEvent(self, x):
         self.reactor.stop()

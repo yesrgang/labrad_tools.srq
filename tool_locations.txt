@@ -1,0 +1,9 @@
+common_actions:            conductor\clients\common_actions.py
+abcdefg:                   sequencer\clients\abcdefg.py
+blue_slaves:               current_controller3\clients\blue_slaves.py
+blue_master:               ecdl2\clients\blue_master.py
+repumpers:                 ecdl2\clients\repumpers.py
+xodt_positions_control:    picomotor\clients\xodt_positions_control.py
+red_mot_detunings:         rf2\clients\red_mot_detunings.py
+parameter_values:          conductor\clients\parameter_values_client.py
+lattice_position_controls: picomotor\clients\lattice_positions_control.py
