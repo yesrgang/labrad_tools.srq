@@ -16,7 +16,7 @@ class V(YeSrAnalogBoard):
         YeSrAnalogChannel(loc=2, name='V - Spin Pol. Intensity', mode='auto', manual_output=0.0),
         YeSrAnalogChannel(loc=3, name='V - Alpha FM', mode='auto', manual_output=0.0),
         YeSrAnalogChannel(loc=4, name='V - Beta FM', mode='auto', manual_output=0.0),
-        YeSrAnalogChannel(loc=5, name='V - 5', mode='auto', manual_output=0.0),
+        YeSrAnalogChannel(loc=5, name='V - 5', mode='manual', manual_output=-0.8),
         YeSrAnalogChannel(loc=6, name='V - 6', mode='auto', manual_output=0.0),
         YeSrAnalogChannel(loc=7, name='V - 7', mode='auto', manual_output=0.0),
         ]

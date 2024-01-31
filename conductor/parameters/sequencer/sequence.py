@@ -70,6 +70,7 @@ class Sequence(ConductorParameter):
                 self.sequencer_server.running(json.dumps(request))
 
         if self.loop:
+            print(1)
             # then check what sequence is running
             request = {device_name: None for device_name in self.sequencer_devices}
             what_is_running = json.loads(self.sequencer_server.sequence(json.dumps(request)))
@@ -85,13 +86,18 @@ class Sequence(ConductorParameter):
                 self.sequencer_server.sequence(json.dumps(request))
                 self.server.experiment['repeat_shot'] = True
             else:
-                request = {device_name: self.next_value for device_name in self.sequencer_devices}
+                print(1)
+                nv = self.next_value
+                print(2)
+                request = {device_name: nv for device_name in self.sequencer_devices}
+                print(3)
                 self.sequencer_server.sequence(json.dumps(request))
                 #self.sequencer_server.set_sequence_fast(json.dumps(request))
+                print(4)
 
         if (not self.loop) and running:
             raise Exception('something is wrong with sequencer.sequence')
-        
+         
         callInThread(self._advance_on_trigger)
         #self._advance_on_trigger()
 
@@ -115,7 +121,9 @@ class Sequence(ConductorParameter):
             time.sleep(0.01)
 
     def _advance_on_trigger(self):
+        print('seq waiting')
         self._wait_for_trigger()
+        print('seq done waiting')
 #        self.fp._wait_trigger(0x60)
         self._mark_timestamp()
         #self.server._advance()

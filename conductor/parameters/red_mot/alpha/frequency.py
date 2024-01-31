@@ -6,4 +6,5 @@ class Parameter(ConductorParameter, Device):
     priority = 1
 
     def update(self):
-        self.value = self.frequency
+        if self.value is not None:
+            self.frequency = self.value

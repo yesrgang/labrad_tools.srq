@@ -1,13 +1,16 @@
 from conductor.parameter import ConductorParameter
+import vxi11
 
-class MJMCombDemodFrequency(ConductorParameter):
+class Parameter(ConductorParameter):
     priority = 1
     autostart = False
     def initialize(self, config):
-        super(MJMCombDemodFrequency, self).initialize(config)
-        self.connect_to_labrad()
+        self.inst = vxi11.Instrument('128.138.107.33')
+        self.inst.timeout = 1
 
     def update(self):
-        self.value = self.cxn.si_demod.get_frequency()
-
-Parameter = MJMCombDemodFrequency
+#        self.inst.lock()
+        response = self.inst.ask('SOUR1:FREQ?')
+        self.inst.local()
+#        self.inst.unlock()
+        self.value = 8 * float(response)

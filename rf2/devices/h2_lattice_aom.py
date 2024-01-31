@@ -6,7 +6,7 @@ class Device(AD9854):
 
     def _setup(self):
         self.amplitude = 1.0
-        self.frequency = 78.75e6
+        self.frequency = 80e6
 
 class DeviceProxy(Device, AD9854Proxy):
     _serial_servername = 'yesr10_serial'
