@@ -1,8 +1,8 @@
 from conductor.parameter import ConductorParameter
 import json
-class DDS_Frequency_0(ConductorParameter):
+class DDS_Frequency_1(ConductorParameter):
     """ 
-    Update amplitude of DDS profile 0 (in [0,1])
+    Update amplitude of DDS profile 1 (in [0,1])
     """
 
     """ detuning of the 1716882'th tooth of the frequency comb, when locked to 
@@ -71,9 +71,9 @@ class DDS_Frequency_0(ConductorParameter):
             final_value = float(srq_dist_fnc_demod)
 
             # print('AD9914 frequency 0:', self.value)
-            print('AD9914 frequency 0:', final_value)
-            self.cxn.yesr14_ad9914.save_new_frequency(0, final_value)
+            print('AD9914 frequency 1:', final_value)
+            self.cxn.yesr14_ad9914.save_new_frequency(1, final_value)
 
 
  
-Parameter = DDS_Frequency_0
+Parameter = DDS_Frequency_1
