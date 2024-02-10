@@ -5,7 +5,7 @@ class Program_DDS(ConductorParameter):
     Apply all new profiles saved at DDS labrad server
     """
 
-    priority = 14 # lowest number -> execute last;  i.e.: program last (after saving all required DDS parameters)
+    priority = 13 # lowest number -> execute last;  i.e.: program last (after saving all required DDS parameters)
     autostart = False
     #value_type = 'list'
     #value_type = 'data'

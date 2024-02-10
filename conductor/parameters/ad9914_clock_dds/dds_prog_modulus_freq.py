@@ -2,18 +2,20 @@ from conductor.parameter import ConductorParameter
 import json
 import calc_fnc_box_freq as fnc
 
-class DDS_Frequency_1(ConductorParameter):
+class DDS_Prog_Modulus_Freq(ConductorParameter):
     """ 
-    Update amplitude of DDS profile 1 (in [0,1])
+    Set Programmable Modulus frequency of DDS with uHz resolution
+    (prevents use of frequency of profiles!)
     """
 
-    priority = 15
+    priority = 14 # execute after specifying all profile values
     autostart = False
     #value_type = 'list'
     #value_type = 'data'
     
     def initialize(self,config):
 	self.connect_to_labrad()
+
     def update(self):
         if self.value is not None:
             # calculate ref frequency for fnc box
@@ -22,9 +24,8 @@ class DDS_Frequency_1(ConductorParameter):
                 return
 
             out_freq = fnc.calc_sr2_fnc_box_ref_freq(mjm_comb_demod, self.value)
-            print('AD9914 frequency 1:', out_freq)
-            self.cxn.yesr14_ad9914.clear_programmable_modulus_mode()
-            self.cxn.yesr14_ad9914.save_new_frequency(1, out_freq)
+            print('AD9914 Programmable Modulus frequency:', out_freq)
+            self.cxn.yesr14_ad9914.save_programmable_modulus_frequency(out_freq)
 
  
-Parameter = DDS_Frequency_1
+Parameter = DDS_Prog_Modulus_Freq
