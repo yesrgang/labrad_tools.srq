@@ -12,9 +12,11 @@ class Parameter(ConductorParameter):
         "image-red": "normal",
         }
 
-    data_filename = '/home/srgang/srqdata/data/{}/{}.mako2.hdf5'
-    nondata_filename = '/home/srgang/srqdata/data/{}/mako2.hdf5'
+#    data_filename = '/home/srgang/srqdata/data/{}/{}.mako2.hdf5'
+#    nondata_filename = '/home/srgang/srqdata/data/{}/mako2.hdf5'
 
+    data_filename = 'Q:\\data\\{}\\{}.mako2.hdf5'
+    nondata_filename = 'Q:\\data\\{}\\{}.mako2.hdf5'
     data_directory = os.path.join(os.getenv('PROJECT_DATA_PATH'), 'data')
 
     
