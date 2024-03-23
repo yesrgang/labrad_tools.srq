@@ -50,11 +50,11 @@ class Client(QtGui.QWidget):
 
         self.parameterBox = QtGui.QTextEdit()
         self.parameterBox.setText(
-            "x0, y0 = 482, 646\n"
+            "x0, y0 = 440, 683\n"
             "x, y = np.meshgrid(range(964), range(1292))\n"
             "r2 = (x - x0)**2 + (y - y0)**2\n"
-            "cloud = (r2 < 646**2)\n"
-            "norm = (r2 > 646**2) & (r2 < np.inf**2)\n"
+            "cloud = (r2 < 35**2)\n"
+            "norm = (r2 > 40**2) & (r2 < 60**2)\n"
             )
         self.parameterBox.setFixedHeight(100)
         self.parameterBox.setFixedWidth(300)
@@ -99,7 +99,13 @@ class Client(QtGui.QWidget):
         yield server.addListener(listener=self.receive_update, source=None, ID=self.update_id)
 
     def receive_update(self, c, update):
-        path = os.path.abspath(update).replace("C:\\home\\srgang\\srqdata\\", "Q:\\")
+        print('update:')
+        print(update)
+        print(os.path.abspath(update))
+        #path = os.path.abspath(update).replace("C:\\home\\srgang\\srqdata\\", "Q:\\")
+        path = os.path.abspath(update).replace("C:\\srqdata2\\", "Q:\\")
+        print('path:')
+        print(path)
         self.pathBox.setText(path)
         self.displayImage()
 
