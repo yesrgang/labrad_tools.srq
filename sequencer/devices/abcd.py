@@ -119,7 +119,7 @@ class ABCD(YeSrDigitalBoard):
         YeSrDigitalChannel(loc=['C', 1], name='RM Gain Switch', mode='auto', manual_output=False, invert=False),
         YeSrDigitalChannel(loc=['C', 2], name='LR AOM Sweep', mode='auto', manual_output=False, invert=True),
         YeSrDigitalChannel(loc=['C', 3], name='LR Demod Sweep', mode='auto', manual_output=False, invert=False),
-        YeSrDigitalChannel(loc=['C', 4], name='LR/HR [hi/lo]', mode='auto', manual_output=False, invert=False),
+        YeSrDigitalChannel(loc=['C', 4], name='LR/HR [hi/lo]', mode='auto', manual_output=True, invert=False),
         YeSrDigitalChannel(loc=['C', 5], name='HR AOM Sweep', mode='auto', manual_output=False, invert=False),
         YeSrDigitalChannel(loc=['C', 6], name='HR Demod Sweep', mode='manual', manual_output=False, invert=False),
         YeSrDigitalChannel(loc=['C', 7], name='V Clock Switch', mode='manual', manual_output=False, invert=True),

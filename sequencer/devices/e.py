@@ -19,7 +19,7 @@ class E(YeSrAnalogBoard):
         YeSrAnalogChannel(loc=3, name='DACE03', mode='auto', manual_output=0.0),
         YeSrAnalogChannel(loc=4, name='DACE04', mode='auto', manual_output= 0.0),
         YeSrAnalogChannel(loc=5, name='DACE05', mode='auto', manual_output=0.0),
-        YeSrAnalogChannel(loc=6, name='DACE06', mode='auto', manual_output=1.5),
+        YeSrAnalogChannel(loc=6, name='DACE06', mode='auto', manual_output=4.0),
         YeSrAnalogChannel(loc=7, name='DACE07', mode='auto', manual_output=0.0),
         ]
 
