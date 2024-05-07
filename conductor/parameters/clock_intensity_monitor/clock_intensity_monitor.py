@@ -48,5 +48,9 @@ class Parameter(ConductorParameter):
 #        print(sequence.value)
         intersection = np.intersect1d(sequence_value, self.record_types)
         if len(intersection) > 0:
-            self.cxn.yesr13_picoscope.get_data(self.value)
+            try:
+                self.cxn.yesr13_picoscope.get_data(self.value)
+            except Exception as e:
+                print('yesr13_picoscope error! Check conductor parameter and enable error output in "clock_intensity_monitor" for details')
+                #print(e)
             
