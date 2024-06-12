@@ -18,8 +18,8 @@ class Parameter(ConductorParameter):
             ]
     
     
-    data_filename = 'Q:/data/{}/{}.pico.hdf5'
-    nondata_filename = 'Q:/data/{}/pico.hdf5'
+    data_filename = 'Q:/data/{}/{}.pico.npz'
+    nondata_filename = 'Q:/data/{}/pico.npz'
 
     def initialize(self, config):
         self.connect_to_labrad()
@@ -52,5 +52,5 @@ class Parameter(ConductorParameter):
                 self.cxn.yesr13_picoscope.get_data(self.value)
             except Exception as e:
                 print('yesr13_picoscope error! Check conductor parameter and enable error output in "clock_intensity_monitor" for details')
-                #print(e)
+                print(e)
             
