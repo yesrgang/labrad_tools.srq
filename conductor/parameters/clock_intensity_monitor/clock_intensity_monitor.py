@@ -49,6 +49,7 @@ class Parameter(ConductorParameter):
         intersection = np.intersect1d(sequence_value, self.record_types)
 
         # get picoscope record parameters
+        model = self.server.parameters.get('sequencer.pico-model')
         duration = self.server.parameters.get('sequencer.pico-duration')
         presamples = self.server.parameters.get('sequencer.pico-presamples')
         postsamples = self.server.parameters.get('sequencer.pico-postsamples')
@@ -56,7 +57,12 @@ class Parameter(ConductorParameter):
         if len(intersection) > 0:
             try:
                 self.cxn.yesr13_picoscope.set_recordduration(duration.value,presamples.value,postsamples.value)
-                self.cxn.yesr13_picoscope.get_data(self.value)
+
+                if model.value == 5000:
+                    self.cxn.yesr13_picoscope.get_data_5000a(self.value)
+                elif model.value == 3000:
+                    self.cxn.yesr13_picoscope.get_data_3000a(self.value)
+
             except Exception as e:
                 print('yesr13_picoscope error! Check conductor parameter and enable error output in "clock_intensity_monitor" for details')
                 print(e)
