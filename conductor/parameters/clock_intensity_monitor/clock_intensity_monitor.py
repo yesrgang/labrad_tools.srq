@@ -50,18 +50,22 @@ class Parameter(ConductorParameter):
 
         # get picoscope record parameters
         model = self.server.parameters.get('sequencer.pico-model')
+        serial_no = self.server.parameters.get('sequencer.pico-serialno')
         duration = self.server.parameters.get('sequencer.pico-duration')
         presamples = self.server.parameters.get('sequencer.pico-presamples')
         postsamples = self.server.parameters.get('sequencer.pico-postsamples')
 
         if len(intersection) > 0:
             try:
-                self.cxn.yesr13_picoscope.set_recordduration(duration.value,presamples.value,postsamples.value)
-
                 if model.value == 5000:
-                    self.cxn.yesr13_picoscope.get_data_5000a(self.value)
+                    print('test1')
+                    self.cxn.yesr13_picoscope.set_recordduration_5000a(duration.value,presamples.value,postsamples.value)
+                    print('test2')
+                    self.cxn.yesr13_picoscope.get_data_5000a(self.value,serial_no.value)
+                    print('test3')
                 elif model.value == 3000:
-                    self.cxn.yesr13_picoscope.get_data_3000a(self.value)
+                    self.cxn.yesr13_picoscope.set_recordduration_3000a(duration.value,presamples.value,postsamples.value)
+                    self.cxn.yesr13_picoscope.get_data_3000a(self.value,serial_no.value)
 
             except Exception as e:
                 print('yesr13_picoscope error! Check conductor parameter and enable error output in "clock_intensity_monitor" for details')
