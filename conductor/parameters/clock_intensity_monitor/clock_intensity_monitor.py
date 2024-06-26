@@ -14,7 +14,8 @@ class Parameter(ConductorParameter):
             'rabi-clock',
             'rabi-clock-x',
             'ramsey-dark',
-            'rabi-clock-cleanup'
+            'rabi-clock-cleanup',
+            'rabi-clock-x-CLKINTOLL',
             ]
     
     
@@ -58,11 +59,8 @@ class Parameter(ConductorParameter):
         if len(intersection) > 0:
             try:
                 if model.value == 5000:
-                    print('test1')
                     self.cxn.yesr13_picoscope.set_recordduration_5000a(duration.value,presamples.value,postsamples.value)
-                    print('test2')
                     self.cxn.yesr13_picoscope.get_data_5000a(self.value,serial_no.value)
-                    print('test3')
                 elif model.value == 3000:
                     self.cxn.yesr13_picoscope.set_recordduration_3000a(duration.value,presamples.value,postsamples.value)
                     self.cxn.yesr13_picoscope.get_data_3000a(self.value,serial_no.value)
