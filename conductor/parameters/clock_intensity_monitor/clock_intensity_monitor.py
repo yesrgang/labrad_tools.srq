@@ -16,6 +16,7 @@ class Parameter(ConductorParameter):
             'ramsey-dark',
             'rabi-clock-cleanup',
             'rabi-clock-x-CLKINTOLL',
+            'rabi-clock-x-CLKOLPD',
             ]
     
     
