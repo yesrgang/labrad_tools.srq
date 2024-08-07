@@ -25,17 +25,18 @@ class Names(ConductorParameter):
                 base_path = os.path.join('/', 'srqdata2')
                 experiment_path = os.path.join(base_path, 'data', experiment_name)
 
-                script_path_win = pathlib.PureWindowsPath(self.value[0])
-                script_path = os.path.join(base_path, *script_path_win.parts[1:])
+                for i in range(len(self.value)):
+                    script_path_win = pathlib.PureWindowsPath(self.value[i])
+                    script_path = os.path.join(base_path, *script_path_win.parts[1:])
 
-                save_dir  = os.path.join(experiment_path, 'scripts')
-                save_path = os.path.join(save_dir, script_path_win.parts[-1])
+                    save_dir  = os.path.join(experiment_path, 'scripts')
+                    save_path = os.path.join(save_dir, script_path_win.parts[-1])
 
-                if not os.path.exists(save_dir):
-                    os.makedirs(save_dir)
+                    if not os.path.exists(save_dir):
+                        os.makedirs(save_dir)
 
-                shutil.copyfile(script_path, save_path)
-                print('saved script {:s} to {:s}'.format(script_path, save_path))
+                    shutil.copyfile(script_path, save_path)
+                    print('saved script {:s} to {:s}'.format(script_path, save_path))
 
 
 Parameter = Names
