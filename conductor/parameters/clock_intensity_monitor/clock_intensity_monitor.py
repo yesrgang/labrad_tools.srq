@@ -17,6 +17,7 @@ class Parameter(ConductorParameter):
             'rabi-clock-cleanup',
             'rabi-clock-x-CLKINTOLL',
             'rabi-clock-x-CLKOLPD',
+            'rabi-rb-start',
             ]
     
     
