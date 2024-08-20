@@ -99,7 +99,8 @@ class Client(QtGui.QWidget):
         yield server.addListener(listener=self.receive_update, source=None, ID=self.update_id)
 
     def receive_update(self, c, update):
-        path = os.path.abspath(update).replace("C:\\home\\srgang\\srqdata\\", "Q:\\")
+        #path = os.path.abspath(update).replace("C:\\home\\srgang\\srqdata\\", "Q:\\")
+        path = os.path.abspath(update).replace("C:\\srqdata2\\", "Q:\\")
         self.pathBox.setText(path)
         self.displayImage()
 
