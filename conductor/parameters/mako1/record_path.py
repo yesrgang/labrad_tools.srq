@@ -5,9 +5,9 @@ import time
 from conductor.parameter import ConductorParameter
 
 class Parameter(ConductorParameter):
-    autostart = False
+    autostart = True #False
     priority = 1
-    call_in_thread = False
+    call_in_thread = True #False
     record_types = {
         "image": "normal",
         "image-odt": "normal",
@@ -16,9 +16,11 @@ class Parameter(ConductorParameter):
         "image-odt-tens4-tmp": "normal",
         }
 
-    data_filename = '/home/srgang/srqdata/data/{}/{}.mako1.hdf5'
-    nondata_filename = '/home/srgang/srqdata/data/{}/mako1.hdf5'
+   # data_filename = '/home/srgang/srqdata/data/{}/{}.mako1.hdf5'
+   # nondata_filename = '/home/srgang/srqdata/data/{}/mako1.hdf5'
 
+    data_filename = '/srqdata2/data/{}/{}.mako1.hdf5'
+    nondata_filename = '/srqdata2/data/{}/mako1.hdf5'
     data_directory = os.path.join(os.getenv('PROJECT_DATA_PATH'), 'data')
 
     
@@ -26,6 +28,7 @@ class Parameter(ConductorParameter):
         super(Parameter, self).initialize(config)
         self.connect_to_labrad() # gives us self.cxn
         self.cxn.yesr10_vimba.arm_mako1()
+        print('mako1 ready!')
     
     @property
     def value(self):
