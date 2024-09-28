@@ -230,9 +230,9 @@ class SynthesizerServer(LabradServer):
         yield self.sock.sendto(buffer, self.dest)
         print("Synthesizer reset.")
 
-    def _write_timestamps(self, timestamps, channel, verbose=False):
+    def _write_timestamps(self, timestamps, channel, freq_offs, freq_mult, verbose=False):
         """
-            _write_timestamps(self, timestamps, channel, verbose=False)
+            _write_timestamps(self, timestamps, channel, freq_offs, freq_mult, verbose=False)
 
             Programs the synthesizer with a list of timestamps.
 
@@ -242,8 +242,10 @@ class SynthesizerServer(LabradServer):
                 *phase_update: 0 to preserve phase, 1 to set absolute phase, 2 to set relative phase
                 *phase: The phase in radians
                 *amplitude: The amplitude (between 0 and 1) relative to full scale
-                *frequency: The frequency (between 0 and 307.2 MHz) in Hz
+                *frequency: The frequency (between 0 and 300 MHz) in Hz
             channel (int): An integer between 0 and 3 determining the channel to program
+            freq_offs (float): offset added to all frequencies (in Hz)
+            freq_mult (float): multiplier for the timestep frequencies (before adding offset)
             verbose (bool, optional): Whether to print the messages sent to the synthesizer. Defaults to False.
         """
         buffers = []
@@ -253,7 +255,7 @@ class SynthesizerServer(LabradServer):
             phase = s["phase"]
             address = i
             amplitude = s["amplitude"]
-            frequency = s["frequency"]
+            frequency = (freq_mult * np.array(s["frequency"]) + freq_offs).tolist()
             wait_for_trigger = bool(s["wait_for_trigger"])
             digital_out = s["digital_out"]
             buffers += SynthesizerServer.compile_timestamp(channel, address, timestamp, phase_update, phase, amplitude, frequency, wait_for_trigger, digital_out)
@@ -265,21 +267,23 @@ class SynthesizerServer(LabradServer):
 
     @inlineCallbacks
     @setting(5, timestamps='s', compile='b', verbose='b')
-    def write_timestamps(self, c, timestamps, compile=False, verbose=False):
+    def write_timestamps(self, c, timestamps, freq_offs=0., freq_mult=1., compile=False, verbose=False):
         """
-        write_timestamps(self, c, timestamps, compile=False, verbose=False)
+        write_timestamps(self, c, timestamps, freq_offs, freq_mult, compile=False, verbose=False)
 
         Writes timestamps from a JSON-formatted string. See :meth:`write_timestamps` for specification.
 
         Args:
             c: The LabRAD context. Not used.
             timestamps (str): A JSON-formatted string containing a dictionary (keys: channels, values: sequences) of lists of dictionaries, each of which is a timestamp.
+            freq_offs (float): offset added to all frequencies (in Hz)
+            freq_mult (float): multiplier for the timestep frequencies (before adding offset)
         """
         timestamps = loads(timestamps, keys=True)
         if compile:
             timestamps = loads(ss.compile_sequence(timestamps)[0], keys=True)
         for channel, ts in timestamps.items():
-            yield self._write_timestamps(ts, int(channel), verbose)
+            yield self._write_timestamps(ts, int(channel), freq_offs, freq_mult, verbose)
 
 if __name__ == '__main__':
     from labrad import util
