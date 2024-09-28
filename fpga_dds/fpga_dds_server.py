@@ -13,7 +13,7 @@ from jsonpickle import loads
 import socket
 
 import fpga_dds_settings as dds_settings
-import synthesizer_sequences as ss
+import fpga_dds_sequences as ds
 
 class SynthesizerServer(LabradServer):
     """Provides low-level control of the 4-channel RF synthesizer developed by the JILA shop."""
@@ -281,7 +281,7 @@ class SynthesizerServer(LabradServer):
         """
         timestamps = loads(timestamps, keys=True)
         if compile:
-            timestamps = loads(ss.compile_sequence(timestamps)[0], keys=True)
+            timestamps = loads(ds.compile_sequence(timestamps)[0], keys=True)
         for channel, ts in timestamps.items():
             yield self._write_timestamps(ts, int(channel), freq_offs, freq_mult, verbose)
 
