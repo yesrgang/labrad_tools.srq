@@ -34,10 +34,13 @@ pv['si21.probe_detuning'] = detunings
 
 
 
-seq = [ss.RectangularPulse(1e-3, 1, phase=0., frequency=f_pump),
-       ss.Wait(10e-3),
-       ss.RectangularPulse(1e-3, 1)]
-pv['fpga_dds.sequences'] = jsonpickle.dumps(seq, keys=True)
+seq = [ds.RectangularPulse(1e-3, 1, phase=0., frequency=f_pump),
+       ds.Wait(10e-3),
+       ds.RectangularPulse(1e-3, 1)]
+seq = {0: seq}
+tmp_str = jsonpickle.dumps(seq, keys=True)
+print(tmp_str)
+pv['fpga_dds.sequences'] = tmp_str
 
 pv['ad9914_clock_dds.dds_profiles'] = {'0': [f_pump+100, 0., 0.8],
                                        '1': [f_pump+100, 0., 0.8],
@@ -163,11 +166,11 @@ if __name__ == '__main__':
     from settings.experiment import Experiment
     import os
 
-    script_path = os.path.abspath(__file__)
-    settings_dir = os.path.join(os.path.dirname(script_path), 'settings')
-    pv['save_script.names'] = [script_path,
-                               os.path.join(settings_dir, 'defaults.py'),
-                               ]
+    #script_path = os.path.abspath(__file__)
+    #settings_dir = os.path.join(os.path.dirname(script_path), 'settings')
+    #pv['save_script.names'] = [script_path,
+    #                           os.path.join(settings_dir, 'defaults.py'),
+    #                           ]
     
     my_experiment = Experiment(
         name='scan',

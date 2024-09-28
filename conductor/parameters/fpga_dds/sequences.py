@@ -28,12 +28,18 @@ class Sequences(ConductorParameter):
             if mjm_comb_demod is None:
                 return
 
+            print('FPGA-DDS says hello!')
             freq_offs,freq_mult = fnc.calc_sr2_fnc_box_offs(mjm_comb_demod)
 
             # program FPGA-DDS
-            #self.cxn.yesr13_synthesizer.reset(reset_outputs=True) # abort any running sequence
-            self.cxn.yesr13_synthesizer.write_timestamps(self.value, freq_offs, freq_mult, compile=True, verbose=False)
-            self.cxn.yesr13_synthesizer.trigger() # just for testing...
+            try:
+                #self.cxn.yesr13_synthesizer.reset(reset_outputs=True) # abort any running sequence
+                self.cxn.yesr13_synthesizer.write_timestamps(self.value, freq_offs, freq_mult, True, False)
+                self.cxn.yesr13_synthesizer.trigger() # just for testing...
+
+            except Exception as e:
+                print('Oh no, you broke the FPGA-DDS!!!')
+                print(e)
 
  
 Parameter = Sequences
