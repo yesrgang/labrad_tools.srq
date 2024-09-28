@@ -15,9 +15,9 @@ import json
 # import jsonpickle
 from dataclasses import dataclass
 
-import plotly.graph_objects as go
-import plotly.express as px
-from plotly.subplots import make_subplots
+#import plotly.graph_objects as go
+#import plotly.express as px
+#from plotly.subplots import make_subplots
 
 import fpga_dds_settings as dds_settings
 
@@ -1882,6 +1882,10 @@ def plot_sequence(seq: List[RFBlock]):
     Args:
         seq ([RFBlock]): The sequence to plot
     """
+    import plotly.graph_objects as go
+    import plotly.express as px
+    from plotly.subplots import make_subplots
+
     compiled, durations = compile_sequence(seq, output_json=False)
 
     fig = make_subplots(
