@@ -53,7 +53,7 @@ def calc_sr2_fnc_box_ref_freq(mjm_comb_demod, drive_freq):
 #    return float(srq_dist_fnc_demod)
 
 
-def calc_sr2_fnc_box_offs(mjm_comb_demod)
+def calc_sr2_fnc_box_offs(mjm_comb_demod):
     if mjm_comb_demod is None:
         return
    # print('!! DDS MJM_comb_demod!!', mjm_comb_demod)
