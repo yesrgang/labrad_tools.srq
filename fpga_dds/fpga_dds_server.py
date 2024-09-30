@@ -128,7 +128,7 @@ class SynthesizerServer(LabradServer):
             print(f'{buf[7]:02X}')
 
     @staticmethod
-    def compile_timestamp(channel, address, timestamp, phase_update, phase, amplitude, frequency, wait_for_trigger=False, digital_out=[False]*7):
+    def compile_timestamp(channel, address, timestamp, phase_update, phase, amplitude, frequency, wait_for_trigger=False, digital_out=[False]*7, verbose=False):
         """
         compile_timestamp(self, channel, address, timestamp, phase_update, ptw, atw, ftw)
 
@@ -144,6 +144,7 @@ class SynthesizerServer(LabradServer):
             frequency (int): The frequency (in Hz) to set
             wait_for_trigger (bool): Whether to wait for a trigger. Defaults to False.
             digital_out ([bool]): A list of 7 booleans, corresponding to whether each channel should be turned on. Defaults to [False]*7, in which case the digital outputs are off.
+            verbose (bool, optional): Whether to print the compiled timestamps. Defaults to False.
 
         Returns:
             List[ByteArray]: The messages to send to the synthesizer that represent the timestamp.
@@ -191,8 +192,9 @@ class SynthesizerServer(LabradServer):
         buffers[2][4:] = (dds_data & 0xFFFFFFFF).to_bytes(4, "big")
         buffers[3][4:] = (dds_data >> 32).to_bytes(4, "big")
 
-        print('Compiled timestamp:')
-        SynthesizerServer.print_buffers(buffers)
+        if verbose:
+            print(f'Compiled timestamp @ ch={channel}, addr=0x{address:04X}:')
+            SynthesizerServer.print_buffers(buffers)
         return buffers
 
     @inlineCallbacks
@@ -256,12 +258,14 @@ class SynthesizerServer(LabradServer):
             frequency = s["frequency"]
             wait_for_trigger = bool(s["wait_for_trigger"])
             digital_out = s["digital_out"]
-            buffers += SynthesizerServer.compile_timestamp(channel, address, timestamp, phase_update, phase, amplitude, frequency, wait_for_trigger, digital_out)
+            buffers += SynthesizerServer.compile_timestamp(channel, address, timestamp, phase_update, phase, amplitude, frequency, wait_for_trigger, digital_out, verbose)
         print("Writing Channel {}.".format(channel))
         for b in buffers:
             if verbose:
                 print(b.hex())
             self.sock.sendto(b, self.dest)
+        if verbose:
+            print() # add newline to structure output
 
     @inlineCallbacks
     @setting(5, timestamps='s', compile='b', verbose='b')
