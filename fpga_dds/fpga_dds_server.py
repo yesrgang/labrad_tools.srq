@@ -280,6 +280,13 @@ class SynthesizerServer(LabradServer):
             freq_mult (float): multiplier for the timestep frequencies (before adding offset)
         """
         timestamps = loads(timestamps, keys=True)
+
+        # adjust frequency of each segment in the sequence
+        for _,ts_list in timestamps.items():
+          for el in ts_list:
+            if hasattr(el, 'frequency') and not el.frequency is None:
+              el.frequency = freq_mult * el.frequency + freq_offs
+
         if compile:
             timestamps = loads(ds.compile_sequence(timestamps)[0], keys=True)
         for channel, ts in timestamps.items():

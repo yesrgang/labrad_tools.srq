@@ -37,7 +37,14 @@ seq = [ss.RectangularPulse(1e-3, 1, phase=0., frequency=10e6),
 # associate sequence to a channel
 seq = {0: seq}
 
-ss.plot_sequence(seq)
+# add offset to frequency of each segment in the sequence
+freq_offs = 1e6
+for ch,l in seq.items():
+  for el in l:
+    if hasattr(el, 'frequency') and not el.frequency is None:
+      el.frequency += freq_offs
+
+# ss.plot_sequence(seq) # plot sequence with plotly in browser
 
 compiled, durations = ss.compile_sequence(seq, output_json=False)
 
