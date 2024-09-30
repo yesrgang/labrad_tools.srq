@@ -20,7 +20,7 @@ class SynthesizerServer(LabradServer):
     name = '%LABRADNODE%_synthesizer'
 
     def __init__(self):
-        self.name = '{}_synthesizer'.format(getNodeName())
+        self.name = '{}_fpgadds'.format(getNodeName())
         super(SynthesizerServer, self).__init__()
 
     def initServer(self):
@@ -230,9 +230,9 @@ class SynthesizerServer(LabradServer):
         yield self.sock.sendto(buffer, self.dest)
         print("Synthesizer reset.")
 
-    def _write_timestamps(self, timestamps, channel, freq_offs, freq_mult, verbose=False):
+    def _write_timestamps(self, timestamps, channel, verbose=False):
         """
-            _write_timestamps(self, timestamps, channel, freq_offs, freq_mult, verbose=False)
+            _write_timestamps(self, timestamps, channel, verbose=False)
 
             Programs the synthesizer with a list of timestamps.
 
@@ -244,8 +244,6 @@ class SynthesizerServer(LabradServer):
                 *amplitude: The amplitude (between 0 and 1) relative to full scale
                 *frequency: The frequency (between 0 and 300 MHz) in Hz
             channel (int): An integer between 0 and 3 determining the channel to program
-            freq_offs (float): offset added to all frequencies (in Hz)
-            freq_mult (float): multiplier for the timestep frequencies (before adding offset)
             verbose (bool, optional): Whether to print the messages sent to the synthesizer. Defaults to False.
         """
         buffers = []
@@ -255,7 +253,7 @@ class SynthesizerServer(LabradServer):
             phase = s["phase"]
             address = i
             amplitude = s["amplitude"]
-            frequency = (freq_mult * np.array(s["frequency"]) + freq_offs).tolist()
+            frequency = s["frequency"]
             wait_for_trigger = bool(s["wait_for_trigger"])
             digital_out = s["digital_out"]
             buffers += SynthesizerServer.compile_timestamp(channel, address, timestamp, phase_update, phase, amplitude, frequency, wait_for_trigger, digital_out)
@@ -290,7 +288,7 @@ class SynthesizerServer(LabradServer):
         if compile:
             timestamps = loads(ds.compile_sequence(timestamps)[0], keys=True)
         for channel, ts in timestamps.items():
-            yield self._write_timestamps(ts, int(channel), freq_offs, freq_mult, verbose)
+            yield self._write_timestamps(ts, int(channel), verbose)
 
 if __name__ == '__main__':
     from labrad import util
