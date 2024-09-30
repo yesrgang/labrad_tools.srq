@@ -74,6 +74,7 @@ class Client(QtGui.QWidget):
         self.processBox.addItem('Absorption Image')
         self.processBox.addItem('Absorption Bright')
         self.processBox.addItem('Fluorescence Image')
+        self.processBox.addItem('Dual Fluorescence Image')
 
 
         self.parameterBox = QtGui.QTextEdit()
@@ -81,8 +82,8 @@ class Client(QtGui.QWidget):
             "x0, y0 = 600, 600\n"
             "x, y = np.meshgrid(range(1200), range(1200))\n"
             "r2 = (x - x0)**2 + (y - y0)**2\n"
-            "cloud = (r2 < 600**2)\n"
-            "norm = (r2 > 600**2) & (r2 < np.inf**2)\n"
+            "cloud = (r2 < 50**2)\n"
+            "norm = (r2 > 100**2) & (r2 < 200**2)\n"
             "fit = False\n"
             "FD = False\n"
             )
@@ -90,7 +91,7 @@ class Client(QtGui.QWidget):
         self.parameterBox.setFixedWidth(300)
         
         self.outputBox = QtGui.QTextEdit()
-        self.outputBox.setFontPointSize(32)
+#        self.outputBox.setFontPointSize(32)
         self.outputBox.setReadOnly(True)
         self.outputBox.setFixedHeight(500)
         self.outputBox.setFixedWidth(300)
@@ -99,8 +100,8 @@ class Client(QtGui.QWidget):
         self.canvas = FigureCanvas(self.figure)
         self.toolbar = NavigationToolbar(self.canvas, self)
         ax = self.figure.add_subplot(111)
-        ax.set_xlim(0, 1023)
-        ax.set_ylim(0, 1023)
+        ax.set_xlim(0, 1200)
+        ax.set_ylim(0, 1200)
 
 
         self.layout = QtGui.QGridLayout()
@@ -124,16 +125,14 @@ class Client(QtGui.QWidget):
     def connect(self):
         self.cxn = connection()
         yield self.cxn.connect(name='kruo viewer')
-        server = yield self.cxn.get_server('conductor')
+        server = yield self.cxn.get_server('yesr20_kuro')
         yield server.signal__update(self.update_id)
         yield server.addListener(listener=self.receive_update, source=None, ID=self.update_id)
 
-    def receive_update(self, c, update_json):
-        update = json.loads(update_json)
-        for key, value in update.items():
-            if key == 'kuro.record_path':
-                self.pathBox.setText(value)
-                self.displayImage()
+    def receive_update(self, c, update):
+        print(update)
+        self.pathBox.setText(update)
+        self.displayImage()
 
     def getImagePath(self):
         text = str(self.pathBox.text())
@@ -160,7 +159,11 @@ class Client(QtGui.QWidget):
         fit = False
         FD =False
         exec(self.getParameters())
-        h5f = h5py.File(os.path.join(DATADIR, "20210123/ref.kuro.hdf5"), "r")
+#        h5f = h5py.File(os.path.join(DATADIR, "20210123/ref.kuro.hdf5"), "r")
+#        ref_image = np.array(h5f['image'], dtype='float')
+#        ref_bright = np.array(h5f['bright'], dtype='float')
+#        h5f.close()
+        h5f = h5py.File(os.path.join(DATADIR, "20210209/clock-detuning-scan#16/mean.kuro.hdf5"), "r")
         ref_image = np.array(h5f['image'], dtype='float')
         ref_bright = np.array(h5f['bright'], dtype='float')
         h5f.close()
@@ -186,7 +189,7 @@ class Client(QtGui.QWidget):
         xsize, ysize = 0,0
         rms_size = 0
         if fit:
-            p0 = (300, 0, x0, y0, 30, 30)
+            p0 = (300, 0, x0, y0, 20, 20)
             bounds = (
                 [0, -np.inf, 0, 0, 0, 0],
                 [np.inf, np.inf, 1024, 1024, np.inf, np.inf]
@@ -201,12 +204,11 @@ class Client(QtGui.QWidget):
 
         self.outputBox.setText("Total Counts: {:.2e}\n".format(tot)+ "Fit Center: {:.1f}, {:.1f}\n".format(xfit, yfit)+"size: x:{:.2f},y:{:.2f},rms:{:.2f}".format(xsize,ysize,rms_size))
 
-
         xmin, xmax = self.figure.get_axes()[0].get_xlim()
         ymin, ymax = self.figure.get_axes()[0].get_ylim()
         self.figure.clear()
         ax = self.figure.add_subplot(111)
-        ax.imshow(counts, cmap='inferno', origin='lower')
+        ax.imshow(counts, cmap='inferno', origin='lower', vmin=counts[cloud].min(), vmax=counts[cloud].max())
         ax.set_xlim(xmin, xmax)
         ax.set_ylim(ymin, ymax)
         ax.contour(norm, colors='r')
@@ -227,7 +229,11 @@ class Client(QtGui.QWidget):
     
     def processAbsorptionImage(self, image_path):
         exec(self.getParameters())
-        h5f = h5py.File(os.path.join(DATADIR, "20210123/ref.kuro.hdf5"), "r")
+#        h5f = h5py.File(os.path.join(DATADIR, "20210513/ref#8/mean.kuro.hdf5"), "r")
+#        ref_image = np.array(h5f['image'], dtype='float')
+#        ref_bright = np.array(h5f['bright'], dtype='float')
+#        h5f.close()
+        h5f = h5py.File(os.path.join(DATADIR, "20210209/clock-detuning-scan#16/mean.kuro.hdf5"), "r")
         ref_image = np.array(h5f['image'], dtype='float')
         ref_bright = np.array(h5f['bright'], dtype='float')
         h5f.close()
@@ -274,6 +280,72 @@ class Client(QtGui.QWidget):
         ax.contour(norm, colors='r')
         ax.contour(cloud, colors='w')
         self.canvas.draw()
+    
+    def setupDualFluorescenceImage(self):
+        exec(self.getParameters())
+        xmin, xmax = self.figure.get_axes()[0].get_xlim()
+        ymin, ymax = self.figure.get_axes()[0].get_ylim()
+        self.figure.clear()
+        ax0 = self.figure.add_subplot(121)
+        ax1 = self.figure.add_subplot(122)
+        ax0.set_xlim(xmin, xmax)
+        ax0.set_ylim(ymin, ymax) 
+        ax0.contour(cloud, colors='w')
+        ax1.set_xlim(xmin, xmax)
+        ax1.set_ylim(ymin, ymax) 
+        ax1.contour(cloud, colors='w')
+        self.canvas.draw()
+
+    
+    def processDualFluorescenceImage(self, image_path):
+        fit = False
+        FD = False
+        exec(self.getParameters())
+        h5f = h5py.File(os.path.join(DATADIR, "20210209/clock-detuning-scan#16/mean.kuro.hdf5"), "r")
+        ref_image0 = np.array(h5f['image'], dtype='float')
+        ref_image1 = np.array(h5f['bright'], dtype='float')
+        h5f.close()
+
+        h5f = h5py.File(image_path, "r")
+        image0 = np.array(h5f['image'], dtype='float') - ref_image0
+        image1 = np.array(h5f['bright'], dtype='float') - ref_image1
+        h5f.close()
+        tot0 = image0[cloud].sum()
+        tot1 = image1[cloud].sum()
+        totsum = tot0 + tot1
+        self.outputBox.setText(
+                "frame0 Counts: {:.2e}\n".format(tot0)\
+                + "frame1 Counts: {:.2e}\n".format(tot1)\
+                + "Total Counts: {:.2e}\n".format(totsum)\
+                + "frame0 frac: {:.3f}\n".format(tot0 / totsum)\
+                + "frame1 frac: {:.3f}\n".format(tot1 / totsum))
+        
+        xmin, xmax = self.figure.get_axes()[0].get_xlim()
+        ymin, ymax = self.figure.get_axes()[0].get_ylim() 
+        self.figure.clear()
+        ax0 = self.figure.add_subplot(121)
+        ax1 = self.figure.add_subplot(122)
+        ax0.imshow(image0, cmap='inferno', origin='lower')
+        ax0.set_xlim(xmin, xmax)
+        ax0.set_ylim(ymin, ymax) 
+        ax0.contour(cloud, colors='w')
+        ax1.imshow(image1, cmap='inferno', origin='lower')
+        ax1.set_xlim(xmin, xmax)
+        ax1.set_ylim(ymin, ymax) 
+        ax1.contour(cloud, colors='w')
+#        ax.contour(norm, colors='r')
+        self.canvas.draw()
+
+    def setupFluorescenceImage(self):
+        exec(self.getParameters())
+        xmin, xmax = self.figure.get_axes()[0].get_xlim()
+        ymin, ymax = self.figure.get_axes()[0].get_ylim()
+        self.figure.clear()
+        ax = self.figure.add_subplot(111)
+        ax.set_xlim(xmin, xmax)
+        ax.set_ylim(ymin, ymax) 
+        ax.contour(cloud, colors='w')
+        self.canvas.draw()
 
     def processFluorescenceImage(self, image_path):
         fit = False
@@ -287,16 +359,16 @@ class Client(QtGui.QWidget):
         h5f = h5py.File(image_path, "r")
         image = np.array(h5f['image'], dtype='float') #- ref_image
         h5f.close()
-        tot = image[cloud].sum()
+        tot = np.log(image[cloud].sum())
         zoom = ((x - x0)**2 <= 50**2) & ((y - y0)**2  <= 50**2)
         xfit, yfit = 0, 0
         xsize, ysize = 0, 0
         rms_size = 0
         if fit:
-            p0 = (300, 0, x0, y0, 30, 30)
+            p0 = (300, 0, x0, y0, 10, 10)
             bounds = (
                 [0, -np.inf, 0, 0, 0, 0],
-                [np.inf, np.inf, 1024, 1024, np.inf, np.inf]
+                [np.inf, np.inf, 1200, 1200, np.inf, np.inf]
                 )
             popt, pcov = sp.optimize.curve_fit(
                     gauss2, (x[cloud], y[cloud]), image[cloud], p0=p0, 
@@ -343,10 +415,10 @@ class Client(QtGui.QWidget):
         ymin, ymax = self.figure.get_axes()[0].get_ylim() 
         self.figure.clear()
         ax = self.figure.add_subplot(111)
-        ax.imshow(image, cmap='inferno', origin='lower')
+        ax.imshow(image, cmap='inferno', origin='lower', vmin=image[cloud].min(), vmax=image[cloud].max())
         ax.set_xlim(xmin, xmax)
         ax.set_ylim(ymin, ymax) 
-#        ax.contour(norm, colors='r')
+        ax.contour(norm, colors='r')
         ax.contour(cloud, colors='w')
         self.canvas.draw()
 
@@ -360,6 +432,58 @@ class Client(QtGui.QWidget):
         ax.set_ylim(ymin, ymax) 
         ax.contour(cloud, colors='w')
         self.canvas.draw()
+    
+    def setupDualAbsorptionImage(self):
+        exec(self.getParameters())
+        xmin, xmax = self.figure.get_axes()[0].get_xlim()
+        ymin, ymax = self.figure.get_axes()[0].get_ylim()
+        self.figure.clear()
+        ax0 = self.figure.add_subplot(121)
+        ax1 = self.figure.add_subplot(122)
+        ax0.set_xlim(xmin, xmax)
+        ax0.set_ylim(ymin, ymax) 
+        ax0.contour(cloud, colors='w')
+        ax1.set_xlim(xmin, xmax)
+        ax1.set_ylim(ymin, ymax) 
+        ax1.contour(cloud, colors='w')
+        self.canvas.draw()
+    
+    def processDualAbsorptionImage(self, image_path):
+        fit = False
+        FD = False
+        exec(self.getParameters())
+        h5f = h5py.File(os.path.join(DATADIR, "20210209/clock-detuning-scan#16/mean.kuro.hdf5"), "r")
+        ref_image0 = np.array(h5f['image'], dtype='float')
+        ref_image1 = np.array(h5f['bright'], dtype='float')
+        h5f.close()
+
+        h5f = h5py.File(image_path, "r")
+        image0 = np.array(h5f['image'], dtype='float') - ref_image0
+        image1 = np.array(h5f['bright'], dtype='float') - ref_image1
+        h5f.close()
+        tot0 = image0[cloud].sum()
+        tot1 = image1[cloud].sum()
+        totsum = tot0 + tot1
+        self.outputBox.setText(
+                "frame0 Counts: {:.2e}\n".format(tot0)\
+                + "frame1 Counts: {:.2e}\n".format(tot1)\
+                + "Total Counts: {:.2e}\n".format(totsum))
+        
+        xmin, xmax = self.figure.get_axes()[0].get_xlim()
+        ymin, ymax = self.figure.get_axes()[0].get_ylim() 
+        self.figure.clear()
+        ax0 = self.figure.add_subplot(121)
+        ax1 = self.figure.add_subplot(122)
+        ax0.imshow(image0, cmap='inferno', origin='lower')
+        ax0.set_xlim(xmin, xmax)
+        ax0.set_ylim(ymin, ymax) 
+        ax0.contour(cloud, colors='w')
+        ax1.imshow(image1, cmap='inferno', origin='lower')
+        ax1.set_xlim(xmin, xmax)
+        ax1.set_ylim(ymin, ymax) 
+        ax1.contour(cloud, colors='w')
+#        ax.contour(norm, colors='r')
+        self.canvas.draw()
 
 
     def displayImage(self):
@@ -372,6 +496,8 @@ class Client(QtGui.QWidget):
             self.processAbsorptionBright(image_path)
         elif self.processBox.currentText() == "Fluorescence Image":
             self.processFluorescenceImage(image_path)
+        elif self.processBox.currentText() == "Dual Fluorescence Image":
+            self.processDualFluorescenceImage(image_path)
     
     def updateProcess(self):
         if self.processBox.currentText() == "Absorption Counts":
@@ -382,6 +508,8 @@ class Client(QtGui.QWidget):
             self.setupAbsorptionBright()
         if self.processBox.currentText() == "Fluorescence Image":
             self.setupFluorescenceImage()
+        if self.processBox.currentText() == "Dual Fluorescence Image":
+            self.setupDualFluorescenceImage()
 
 
 

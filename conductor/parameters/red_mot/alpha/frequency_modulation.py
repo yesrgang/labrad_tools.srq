@@ -7,19 +7,22 @@ from conductor.parameter import ConductorParameter
 
 class FrequencyModulation(ConductorParameter):
     priority = 1
-    autostart = True
+    autostart = False
     call_in_thread = True
     awg_devicename = 'alpha_fm'
     waveforms = {
-        'red_mot': 'INT:\\ALPHA.ARB',
-        'rm_tof': 'INT:\\ALPHA.ARB',
-        'red_mot-fast': 'INT:\\ALPHA_FAST.ARB',
-        'red_mot-fast-tof': 'INT:\\ALPHA_FAST.ARB',
+        'red-mot': 'INT:\\ALPHA.ARB',
+        'red-mot-tof': 'INT:\\ALPHA.ARB',
+        'red-mot-fast': 'INT:\\ALPHA_FAST.ARB',
+        'red-mot-fast-tof': 'INT:\\ALPHA_FAST.ARB',
         }
 
     def initialize(self, config):
         super(FrequencyModulation, self).initialize(config)
         self.connect_to_labrad()
+        request = {self.awg_devicename: 'INT:\\ALPHA.ARB'}
+        self.cxn.awg.waveforms(json.dumps(request))
+        self.cxn.awg.amplitude('alpha_fm', 0.225)
     
     def update(self):
         sequence = self.server._get_parameter_value('sequencer.sequence')

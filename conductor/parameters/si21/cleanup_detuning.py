@@ -26,7 +26,7 @@ class CleanupDetuning(ConductorParameter):
                     'si21.mjm_comb_demod_frequency')
             if mjm_comb_demod is None:
                 return
-            
+            #print('!!!si21.mjm_comb_demod!!!:', mjm_comb_demod)
             # aom on comb table. 0th order goes to comb. double passed, +1 order 
             # goes back through fiber.
             comb_table_offset_aom = 30.0e6
@@ -55,9 +55,11 @@ class CleanupDetuning(ConductorParameter):
 
             # second aom on SrQ table to keep FNC VCO within output bandwidth.
             srq_steer = srq_dist_aom + srq_table_offset_aom - srq_dist_fnc
+            #print('!!! si21.cleanup srq_steer !!!', srq_steer)
 
             srq_dist_fnc_demod = -2 * srq_dist_fnc
 
+            #print('!!!si21.cleanup_demod_freq:!!!', srq_dist_fnc_demod)
             request = {
 #                'clock_aom.frequency': float(srq_steer),
 #                'clock_fiber_aom.demod_frequency': float(srq_dist_fnc),

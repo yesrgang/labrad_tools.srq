@@ -28,7 +28,7 @@ class _3D3Client(CurrentControllerClient):
     name = '3d3'
 
 class MyClientContainer(MultipleClientContainer):
-    name = 'blue slaves'
+    name = 'blue'
 
 if __name__ == '__main__':
     from PyQt4 import QtGui

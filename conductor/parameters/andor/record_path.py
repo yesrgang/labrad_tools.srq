@@ -13,6 +13,10 @@ class RecordPath(ConductorParameter):
     priority = 1
     record_types = {
         "image": "absorption",
+        "image-lat": "absorption",
+        "image-odt": "absorption",
+        "image-odt-tmp": "absorption",
+        "image-odt-tens4": "absorption",
         }
 
     data_filename = '{}.ikon.hdf5'
@@ -26,6 +30,7 @@ class RecordPath(ConductorParameter):
         super(RecordPath, self).initialize(config)
         self.connect_to_labrad()
         andor = AndorProxy(self.cxn.yesr10_andor)
+        andor.verbose=False
         andor.Initialize()
         andor.SetFanMode(2)
         andor.SetTemperature(-70)
@@ -56,9 +61,9 @@ class RecordPath(ConductorParameter):
         else:
             sequence_value = sequence.value
         intersection = np.intersect1d(sequence_value, self.record_types.keys())
-        record_type = self.record_types.get(intersection[-1])
+        if intersection:
+            record_type = self.record_types.get(intersection[-1])
     
-        print 'rt', record_type
         if record_type == 'absorption':
             self.take_absorption_image()
         self.server._send_update({self.name: self.value})
@@ -87,7 +92,7 @@ class RecordPath(ConductorParameter):
             andor.WaitForAcquisition()
 
         data = andor.GetAcquiredData(2 * 1024 * 1024).reshape(2, 1024, 1024)
-        images = {key: data[i] 
+        images = {key: np.rot90(data[i], 2)
                   for i, key in enumerate(["image", "bright"])}
         
         data_path = os.path.join(self.data_directory, self.value)

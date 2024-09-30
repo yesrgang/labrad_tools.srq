@@ -90,6 +90,8 @@ class StopExperiment(ButtonActionWidget):
     def onButtonPressed(self):
         server = yield self.cxn.get_server(self.servername)
         yield server.stop_experiment()
+
+
         
 #class CommonActionsClient(QtGui.QGroupBox):
 #    servername = 'conductor'

@@ -56,6 +56,7 @@ class ProbeDetuning(ConductorParameter):
             # second aom on SrQ table to keep FNC VCO within output bandwidth.
             srq_steer = srq_dist_aom + srq_table_offset_aom - srq_dist_fnc
             srq_vsteer = srq_steer - srq_table_offset_aom
+            print('!!!probe_detuning SG382:', float(-2*srq_dist_fnc))
 
 #            optical_comb_tooth = f_sr - self.value
 
