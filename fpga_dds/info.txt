@@ -1,0 +1,1 @@
+Most of the DDS code is based on the KRb "synthesizer" implementation: https://github.com/krbjila/labrad_tools/tree/master/synthesizer
