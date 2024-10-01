@@ -119,7 +119,7 @@ class SynthesizerServer(LabradServer):
     def print_buffers(buffers):
         for i, buf in enumerate(buffers):
             #print(f'buffers[{i}]: 0x {int.from_bytes(buf[:4], "big"):08X} {int.from_bytes(buf[4:], "big"):08X}')
-            print(f'buffers[{i}]: 0x  ', end='')
+            print(f' buffers[{i}]: 0x  ', end='')
             for i in range(0, 4):
                 print(f'{buf[i]:02X} ', end='')
             print('  ', end='')
@@ -195,6 +195,13 @@ class SynthesizerServer(LabradServer):
         if verbose:
             print(f'Compiled timestamp @ ch={channel}, addr=0x{address:04X}:')
             SynthesizerServer.print_buffers(buffers)
+            print(f' timestamp:     {timestamp}')
+            print(f' frequency:     {frequency}')
+            print(f' phase:         {phase}')
+            print(f' amplitude:     {amplitude}')
+            print(f' digital:       {digital_out}')
+            print(f' phase update:  {phase_update}')
+            print(f' wait for trig: {wait_for_trigger}')
         return buffers
 
     @inlineCallbacks
