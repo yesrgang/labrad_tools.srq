@@ -1,5 +1,6 @@
 from conductor.parameter import ConductorParameter
 import json
+import sys
 import calc_fnc_box_freq as fnc
 
 #import sys
@@ -23,22 +24,34 @@ class Sequences(ConductorParameter):
 
     def update(self):
         if self.value is not None:
-            # calculate ref frequency for fnc box
-            mjm_comb_demod = json.loads(self.cxn.conductor.get_parameter_values(json.dumps({'si21.mjm_comb_demod_frequency':{}})))['si21.mjm_comb_demod_frequency']
-            if mjm_comb_demod is None:
-                return
-
-            print('FPGA-DDS says hello!')
-            freq_offs,freq_mult = fnc.calc_sr2_fnc_box_offs(mjm_comb_demod)
 
             # program FPGA-DDS
             try:
-                #self.cxn.yesr13_synthesizer.reset(reset_outputs=True) # abort any running sequence
-                self.cxn.yesr13_synthesizer.write_timestamps(self.value, freq_offs, freq_mult, True, False)
-                self.cxn.yesr13_synthesizer.trigger() # just for testing...
+                # calculate ref frequency for fnc box
+                mjm_comb_demod = json.loads(self.cxn.conductor.get_parameter_values(json.dumps({'si21.mjm_comb_demod_frequency':{}})))['si21.mjm_comb_demod_frequency']
+                if mjm_comb_demod is None:
+                    print('MJM-comb demod value not ready - FPGA-DDS not programmed!')
+
+                # retrieve verbosity setting for FPGA-DDS programming
+                try: # in case fpga_dds.verbose does not exist
+                    if json.loads(self.cxn.conductor.get_parameter_values('{"fpga_dds.verbose":{}}'))['fpga_dds.verbose'] == 1:
+                        verbose = True
+                    else:
+                        verbose = False
+                except:
+                    verbose = False
+
+                self.cxn.yesr13_fpgadds.reset(True) # abort any running sequence (+ clear timestamp memory)
+                if not mjm_comb_demod is None:
+                    freq_offs,freq_mult = fnc.calc_sr2_fnc_box_offs(mjm_comb_demod)
+
+                    self.cxn.yesr13_fpgadds.write_timestamps(self.value, freq_offs, freq_mult, True, verbose)
+                    #self.cxn.yesr13_fpgadds.trigger() # just for testing...
+
 
             except Exception as e:
-                print('Oh no, you broke the FPGA-DDS!!!')
+                sys.stdout.write('FPGA-DDS ERROR:\n  ')
+                sys.stdout.flush()
                 print(e)
 
  
