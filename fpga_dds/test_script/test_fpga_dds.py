@@ -33,14 +33,14 @@ pv['si21.cleanup_detuning'] = f_pump
 pv['si21.probe_detuning'] = detunings
 
 
-
+### FPGA-DDS programming ###
 seq = [ds.RectangularPulse(1e-3, 1, phase=0., frequency=f_pump),
        ds.Wait(10e-3),
-       ds.RectangularPulse(1e-3, 1)]
+       ds.RectangularPulse(1e-3, 1, phase=np.pi)]
 seq = {0: seq}
-tmp_str = jsonpickle.dumps(seq, keys=True)
-print(tmp_str)
-pv['fpga_dds.sequences'] = tmp_str
+pv['fpga_dds.verbose'] = 0 # put this into defaults!
+pv['fpga_dds.sequences'] = jsonpickle.dumps(seq, keys=True)
+### END FPGA-DDS programming ###
 
 pv['ad9914_clock_dds.dds_profiles'] = {'0': [f_pump+100, 0., 0.8],
                                        '1': [f_pump+100, 0., 0.8],
