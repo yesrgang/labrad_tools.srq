@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+import sys
+sys.path.append('../') # for fpga_dds_sequences.py
 import fpga_dds_sequences as ss
 
 # set plotly output

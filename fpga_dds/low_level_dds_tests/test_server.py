@@ -1,8 +1,10 @@
-import sys, os
+# import sys, os
+# current = os.path.dirname(os.path.realpath(__file__))
+# parent = os.path.dirname(current)
+# sys.path.append(parent)
 
-current = os.path.dirname(os.path.realpath(__file__))
-parent = os.path.dirname(current)
-sys.path.append(parent)
+import sys
+sys.path.append('../') # for fpga_dds_sequences.py
 import fpga_dds_sequences as ss
 import labrad
 import jsonpickle, pprint

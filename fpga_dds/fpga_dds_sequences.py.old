@@ -22,17 +22,6 @@ from dataclasses import dataclass
 import fpga_dds_settings as dds_settings
 
 
-def set_float(val):
-    return float(val) if val is not None else None
-
-
-def set_float_or_str(val):
-    if val is not None:
-        return float(val) if type(val) is not str else str(val)
-    else:
-        return None
-
-
 class SequenceState:
     """
     Records the state of a synthesizer channel at any point in the sequence. Used by :func:`compile_sequence` and the :meth:`RFBlock.compile`.
@@ -40,77 +29,36 @@ class SequenceState:
 
     def __init__(
         self,
+        amplitude: float = 0,
         phase: float = 0,
         frequency: float = 1e6,
         transition: Transition = None,
-        pd_setpoint: float = 0,
-        pd_selection: bool = False,
-        clk_shutter: bool = False,
-        clk_aom: bool = False,
-        additional_params: dict = None,
         time: float = 0,
-        tot_time: float = 0,
-        dds_amplitude: float = 0,
-        dds_triggers: int = 0,
+        triggers: int = 0,
         syncpoints: List[SyncPoint] = [],
-        dds_digital_out: List[bool] = [False] * 7,
+        digital_out: List[bool] = [False] * 7,
     ) -> None:
         """
         Args:
+            amplitude (float): The amplitude of the channel. Defaults to 0.
             phase (float): The phase of the channel. Defaults to 0.
             frequency (float): The frequency of the channel. Defaults to 1E6.
             transition (:class:`Transition`): The selected transition, as set by :class:`SetTransition`. Defaults to None.
-            pd_setpoint (float): Setpoint of the clock PD. Defaults to 0.
-            clk_shutter (bool): State of the clock shutter. Defaults to False.
-            clk_aom (bool): State of the clock AOM. Defaults to False.
-            additional_params (dict): Additional parameters ({"<param_name>": <value>}). Defaults to None.
             time (float): The time since the start or the last trigger. Defaults to 0.
-            tot_time (float): The time since the start or the start of the sequence (first trigger). Defaults to 0.
-            dds_amplitude (float): The amplitude of the DDS channel. Defaults to 0.
-            dds_triggers (int): The number of DDS triggers required so far. Defaults to 0.
+            triggers (int): The number of triggers required so far. Defaults to 0.
             syncpoints (list of str): The ordered list of :class:`SyncPoint` so far. Defaults to :code:`[]`.
-            dds_digital_out (list of bool): The state of the digital outputs. Defaults to :code:`[False]*7`.
+            digital_out (list of bool): The state of the digital outputs. Defaults to :code:`[False]*7`.
         """
-        self.phase = set_float(phase)
-        self.frequency = set_float(frequency)
+        print('init seq state')
+        print('transition: ', transition)
+        self.amplitude = amplitude
+        self.phase = phase
+        self.frequency = frequency
         self.transition = transition
-        self.pd_setpoint = set_float(pd_setpoint)
-        self.pd_selection = pd_selection
-        self.clk_shutter = clk_shutter
-        self.clk_aom = clk_aom
-        self.additional_params = additional_params
-        self.time = set_float(time)
-        self.tot_time = set_float(tot_time)
-        self.dds_amplitude = set_float(dds_amplitude)
-        self.dds_triggers = dds_triggers
+        self.time = time
+        self.triggers = triggers
         self.syncpoints = syncpoints
-        self.dds_digital_out = dds_digital_out
-    
-    def update_additional_params(self, additional_params: dict):
-        """
-        Updates self.additional_params and checks for consistency.
-
-        Args:
-            additional_params (dict): Updated parameters.
-        """
-        # consistency checks between existing and new params
-        if additional_params is not None:
-            if self.additional_params is not None and (self.additional_params.keys() != additional_params.keys()):
-                raise KeyError('Keys of additional_params change; they must stay the same within a sequence.\nold: {}\nnew: {}'.format(list(additional_params.keys()),
-                                                                                                                                       list(self.additional_params.keys())))
-        #if self.additional_params is None and additional_params is not None:
-        #    raise ValueError('additional_params has previously been empty but has entries now; the number of entires cannot change within a sequence.')
-        #elif self.additional_params is not None and additional_params is None:
-        #    raise ValueError('additional_params was filled and is empty now; the number of entries cannot change within a sequence.')
-        #for key,_ in self.additional_params.items():
-        #    if type(self.additional_params[key]) is not type(additional_params[key]):
-        #        raise TypeError('Type of additional_param {} changes from {} to {}; types cannot change within a sequence.'.format(
-        #            key,
-        #            type(self.additional_params[key]),
-        #            type(additional_params[key])))
-
-        # update parameters
-        self.additional_params = copy(additional_params)
+        self.digital_out = digital_out
 
 
 @dataclass
@@ -193,25 +141,21 @@ class RFPulse(RFBlock):
 
 
 def validate_parameters(
-    duration: float = None,
+    duration=None,
+    amplitude: Optional[float] = None,
     phase: Optional[float] = None,
     frequency: Optional[float] = None,
-    pd_setpoint: Optional[float] = None,
-    additional_params: Optional[dict] = None,
-    dds_amplitude: Optional[float] = None,
 ) -> None:
     """
-    validate_parameters(duration=None, phase=None, frequency=None, pd_setpoint=None, additonal_params=None, dds_amplitude=None)
+    validate_parameters(duration=None, amplitude=None, phase=None, frequency=None)
 
     Checks that commonly used parameters are within acceptable ranges.
 
     Args:
         duration (float, optional): Duration in seconds. Checks that it's non-negative. Defaults to None.
+        amplitude (float, optional): Amplitude relative to full scale. Checks that it's between zero and one. Defaults to None.
         phase (float, optional): Phase in radians. Checks that it's a real number. Defaults to None.
         frequency (float, optional): Frequency in Hertz. Checks that it's between zero and :code:`F_MAX`. Defaults to None.
-        pd_setpoint (float, optional): Setpoint in volts. Checks that it's between -10 and +10. Defaults to None.
-        additional_params (dict, optional): Checks that all values are either floats between -10 and +10 (analog channels) of bools (digital channels)
-        dds_amplitude (float, optional): Amplitude relative to full scale. Checks that it's between zero and one. Defaults to None.
 
     Raises:
         ValueError: If any of the parameters are not None and outside their valid range.
@@ -220,23 +164,14 @@ def validate_parameters(
         raise ValueError(
             "Duration {} must be between zero and {}.".format(duration, dds_settings.T_MAX)
         )
-    
+    if amplitude is not None and (amplitude < 0 or amplitude > 1):
+        raise ValueError("Amplitude {} must be between zero and one.".format(amplitude))
     if phase is not None and not np.isreal(phase):
         raise ValueError("Phase {} must be a real number.".format(phase))
     if frequency is not None and (frequency < 0 or frequency > dds_settings.F_MAX):
         raise ValueError(
             "Frequency {} must be between 0 and {}.".format(frequency, dds_settings.F_MAX)
         )
-    if pd_setpoint is not None and (pd_setpoint < -10. or pd_setpoint > 10.):
-        raise ValueError("PD setpoint {} must be between -10 and +10.".format(pd_setpoint))
-    if additional_params is not None:
-        for key,val in additional_params.items():
-            if type(val) is float and (val < -10. or val > 10.):
-                raise ValueError('Additional parameter {} (value: {}) must be between -10 and +10.'.format(key, val))
-            elif type(val) is not bool:
-                raise TypeError('Additional parameter {} is of type {} but only float or bool is allowed.'.format(key, type(val)))
-    if dds_amplitude is not None and (dds_amplitude < 0 or dds_amplitude > 1):
-        raise ValueError("DDS Amplitude {} must be between zero and one.".format(dds_amplitude))
 
 
 class Timestamp(RFBlock):
@@ -249,109 +184,76 @@ class Timestamp(RFBlock):
     def __init__(
         self,
         duration: float,
+        amplitude: Optional[float] = None,
         phase: Optional[float] = None,
         frequency: Optional[float] = None,
-        pd_setpoint: Optional[float] = None,
-        pd_selection: Optional[int] = None,
-        clk_shutter: Optional[bool] = None,
-        clk_aom: Optional[bool] = None,
-        additional_params: Optional[dict] = None,
-        dds_amplitude: Optional[float] = None,
-        dds_wait_for_trigger: Optional[bool] = False,
-        dds_digital_out: Optional[dict] = {},
-        dds_absolute_phase: Optional[bool] = False,
+        wait_for_trigger: Optional[bool] = False,
+        digital_out: Optional[dict] = {},
+        absolute_phase: Optional[bool] = False,
     ) -> None:
         """
         Args:
             duration (float): The duration of the timestamp. If the duration is zero, the parameters override ommited parameters in the next Timestamp.
+            amplitude (float, optional): The amplitude of the tone relative to full scale. Defaults to None, in which case the previous amplitude is maintained.
             phase (float, optional): The phase of the tone in radians. Defaults to None, in which case the previous phase is maintained.
             frequency (float, optional): The frequency of the tone in Hertz. Defaults to None, in which case the previous frequency is maintained.
-            pd_setpoint (float, optional): Clock PD setpoint (the value corresponds to the PD before the atoms and may be converted to the one after the atoms, depending on the value of selected_pd)
-            pd_selection (bool, optional): Use PD before/after the chamber as input for the intensity servo
-            clk_shutter (bool, optional): Position of the clock laser shutter
-            clk_aom (bool, optional): Clock AOM disable / intensity servo integrator hold
-            additional_params (dict, optional): Additional Sequencer channels ({"<ch_name>": <value>}, with <ch_name> being the same as the onces referenced in :class:'SequencerMapping)
-            dds_amplitude (float, optional): The amplitude of the tone relative to full scale. Defaults to None, in which case the previous amplitude is maintained.
-            dds_wait_for_trigger (bool, optional): Whether to wait for a trigger to start the timestamp. Defaults to False.
-            dds_digital_out ({int: bool}, optional): A dictionary with keys (integers between 0 and 6) corresponding to the indices of digital outputs to set and boolean values corresponding to the desired state of the output. If a key is not present, the corresponding output is unchanged. Only used for the first channel. Defaults to {}.
-            dds_absolute_phase (bool, optional): If true, sets the phase to :code:`phase` radians at the beginning of the timestamp. Otherwise offsets the phase to :code:`phase` radians relative to a reference clock. If True, :code:`phase` must not be None. Defaults to False.
+            wait_for_trigger (bool, optional): Whether to wait for a trigger to start the timestamp. Defaults to False.
+            digital_out ({int: bool}, optional): A dictionary with keys (integers between 0 and 6) corresponding to the indices of digital outputs to set and boolean values corresponding to the desired state of the output. If a key is not present, the corresponding output is unchanged. Only used for the first channel. Defaults to {}.
+            absolute_phase (bool, optional): If true, sets the phase to :code:`phase` radians at the beginning of the timestamp. Otherwise offsets the phase to :code:`phase` radians relative to a reference clock. If True, :code:`phase` must not be None. Defaults to False.
         """
-        self.duration = set_float(duration)
-        self.phase = set_float(phase)
-        self.frequency = set_float(frequency)
-        self.pd_setpoint = set_float(pd_setpoint)
-        self.pd_selection = pd_selection
-        self.clk_shutter = clk_shutter
-        self.clk_aom = clk_aom
-        self.additional_params = additional_params
-        self.dds_amplitude = set_float(dds_amplitude)
-        self.dds_wait_for_trigger = dds_wait_for_trigger
-        self.dds_digital_out = dds_digital_out
-        self.dds_absolute_phase = dds_absolute_phase
-        self.dds_phase_update = 0  # low-level phase-update bits for FPGA-DDS
+        self.duration = duration
+        self.amplitude = amplitude
+        self.phase = phase
+        self.frequency = frequency
+        self.wait_for_trigger = wait_for_trigger
+        self.digital_out = digital_out
+        self.absolute_phase = absolute_phase
+        self.phase_update = 0
 
     def __repr__(self) -> str:
         val = "Timestamp({}".format(self.duration)
+        if self.amplitude is not None:
+            val += ", amplitude={}".format(self.amplitude)
         if self.phase is not None:
             val += ", phase={}".format(self.phase)
         if self.frequency is not None:
             val += ", frequency={}".format(self.frequency)
-        if self.pd_setpoint is not None:
-            val += ", pd_setpoint={}".format(self.pd_setpoint)
-        if self.pd_selection is not None:
-            val += ", pd_selection={}".format(self.pd_selection)
-        if self.clk_shutter is not None:
-            val += ", clk_shutter={}".format(self.clk_shutter)
-        if self.clk_aom is not None:
-            val += ", clk_aom={}".format(self.clk_shutter)
-        if self.additional_params is not None:
-            val += ", additional_params={}".format(self.additional_params)
-        if self.dds_amplitude is not None:
-            val += ", dds_amplitude={}".format(self.dds_amplitude)
-        if self.dds_wait_for_trigger:
-            val += ", dds_wait_for_trigger={}".format(self.dds_wait_for_trigger)
-        if len(self.dds_digital_out) > 0:
-            val += ", dds_digital_out={}".format(self.dds_digital_out)
+        if self.wait_for_trigger:
+            val += ", wait_for_trigger={}".format(self.wait_for_trigger)
+        if len(self.digital_out) > 0:
+            val += ", digital_out={}".format(self.digital_out)
         return val + ")"
-    
+
     def compile(self, state: Optional[SequenceState] = None) -> Timestamp:
-        validate_parameters(self.duration, self.phase, self.frequency, self.pd_setpoint, self.additional_params, self.dds_amplitude)
-        if self.dds_absolute_phase and self.phase is None:
-            raise ValueError("Phase cannot be None if dds_absolute_phase is True")
+        validate_parameters(self.duration, self.amplitude, self.phase, self.frequency)
+        if self.absolute_phase and self.phase is None:
+            raise ValueError("Phase cannot be None if absolute_phase is True")
         state.time += self.duration
-        state.tot_time += self.duration
-        if self.dds_absolute_phase:
-            self.dds_phase_update = 1
+        if self.amplitude is not None:
+            state.amplitude = self.amplitude
+        if self.absolute_phase:
+            self.phase_update = 1
             state.phase = self.phase
         elif self.phase is not None and self.phase != state.phase:
-            self.dds_phase_update = 2
+            self.phase_update = 2
             state.phase = self.phase
         if self.frequency is not None:
             state.frequency = self.frequency
-        if self.pd_setpoint is not None:
-            state.pd_setpoint = self.pd_setpoint
-        if self.pd_selection is not None:
-            state.pd_selection = self.pd_selection
-        if self.clk_shutter is not None:
-            state.clk_shutter = self.clk_shutter
-        if self.clk_aom is not None:
-            state.clk_aom = self.clk_aom
-        if self.additional_params is not None:
-            state.update_additional_params(self.additional_params)
-        if self.dds_amplitude is not None:
-            state.dds_amplitude = self.dds_amplitude
-        if self.dds_wait_for_trigger:
-            state.dds_triggers += 1
+        if self.wait_for_trigger:
+            state.triggers += 1
             state.time = 0
-        state.dds_digital_out = copy(state.dds_digital_out)
-        for c, v in self.dds_digital_out.items():
+        state.digital_out = copy(state.digital_out)
+        for c, v in self.digital_out.items():
             if not isinstance(v, bool):
                 raise ValueError(
                     "Digital output {} must be boolean but is {}.".format(c, v)
                 )
             if c < 0 or c >= dds_settings.N_DIGITAL:
                 raise ValueError("Digital output {} is out of range.".format(c))
-            state.dds_digital_out[c] = v
+            state.digital_out[c] = v
+
+        # # Turn on the RF switch if the amplitude is non-zero
+        # state.digital_out[0] = state.amplitude > 0
 
         return super().compile(state)
 
@@ -767,51 +669,31 @@ class PhaseRamp(RFBlock):
     def __init__(
         self,
         duration: float,
+        amplitude: Optional[float] = None,
         start_phase: Optional[float] = None,
         end_phase: Optional[float] = None,
         frequency: Optional[float] = None,
-        pd_setpoint: Optional[float] = None,
-        pd_selection: Optional[bool] = None,
-        clk_shutter: Optional[bool] = None,
-        clk_aom: Optional[bool] = None,
-        additional_params: Optional[dict] = None,
-        dds_amplitude: Optional[float] = None,
         steps: int = 20,
     ):
         """
         Args:
             duration (float): The duration of the ramp in seconds.
+            amplitude (float, optional): The amplitude of the tone relative to full scale. Defaults to None, in which case the previous ammplitude setting is maintained.
             start_phase (float, optional): The initial phase in radians. Defaults to None, in which case the phase of the previous :class:`RFBlock` is used.
             end_phase (float, optional): The final phase in radians. Defaults to None, in which case :code:`start_phase` is used.
             frequency (float, optional): The frequency of the tone in Hertz. Defaults to None, in which case the previous frequency setting is maintained.
-            pd_setpoint (float, optional): Clock PD setpoint (the value corresponds to the PD before the atoms and may be converted to the one after the atoms, depending on the value of selected_pd)
-            pd_selection (bool, optional): Use PD before/after the chamber as input for the intensity servo
-            clk_shutter (bool, optional): Position of the clock laser shutter
-            clk_aom (bool, optional): Clock AOM disable / intensity servo integrator hold
-            additional_params (dict, optional): Additional Sequencer channels ({"<ch_name>": <value>}, with <ch_name> being the same as the onces referenced in :class:'SequencerMapping)
-            dds_amplitude (float, optional): The amplitude of the DDS tone relative to full scale. Defaults to None, in which case the previous ammplitude setting is maintained.
             steps (int, optional): The number of amplitude steps to include in the ramp. Must be at least 2. Defaults to 20.
         """
-        self.duration = set_float(duration)
-        self.start_phase = set_float(start_phase)
-        self.end_phase = set_float(end_phase)
-        self.frequency = set_float(frequency)
-        self.pd_setpoint = set_float(pd_setpoint)
-        self.pd_selection = pd_selection
-        self.clk_shutter = clk_shutter
-        self.clk_aom = clk_aom
-        self.additional_params = additional_params
-        self.dds_amplitude = set_float(dds_amplitude)
+        self.duration = duration
+        self.amplitude = amplitude
+        self.start_phase = start_phase
+        self.end_phase = end_phase
+        self.frequency = frequency
         self.steps = steps
 
     def compile(self, state: SequenceState) -> List[RFBlock]:
         validate_parameters(
-            self.duration,
-            self.start_phase,
-            self.frequency,
-            self.pd_setpoint,
-            self.additional_params,
-            self.dds_amplitude,
+            self.duration, self.amplitude, self.start_phase, self.frequency
         )
         validate_parameters(phase=self.end_phase)
         if self.steps < 2 or self.steps != int(self.steps):
@@ -823,35 +705,20 @@ class PhaseRamp(RFBlock):
         step = self.duration / self.steps
         phis = np.linspace(self.start_phase, self.end_phase, self.steps)
         timestamps = [Timestamp(step, phase=phi) for phi in phis]
+        timestamps[0].amplitude = self.amplitude
         timestamps[0].frequency = self.frequency
-        timestamps[0].pd_setpoint = self.pd_setpoint
-        timestamps[0].pd_selection = self.pd_selection
-        timestamps[0].clk_shutter = self.clk_shutter
-        timestamps[0].clk_aom = self.clk_aom
-        timestamps[0].additional_params = self.additional_params
-        timestamps[0].dds_amplitude = self.dds_amplitude
         return timestamps
 
     def __repr__(self) -> str:
         val = "PhaseRamp({}".format(self.duration)
+        if self.amplitude is not None:
+            val += ", amplitude={}".format(self.amplitude)
         if self.start_phase is not None:
             val += ", start_phase={}".format(self.start_phase)
         if self.end_phase is not None:
             val += ", end_phase={}".format(self.end_phase)
         if self.frequency is not None:
             val += ", frequency={}".format(self.frequency)
-        if self.pd_setpoint is not None:
-            val += ", pd_setpoint={}".format(self.pd_setpoint)
-        if self.pd_selection is not None:
-            val += ", pd_selection={}".format(self.pd_selection)
-        if self.clk_shutter is not None:
-            val += ", clk_shutter={}".format(self.clk_shutter)
-        if self.clk_aom is not None:
-            val += ", clk_aom={}".format(self.clk_shutter)
-        if self.additional_params is not None:
-            val += ", additional_params={}".format(self.additional_params)
-        if self.dds_amplitude is not None:
-            val += ", dds_amplitude={}".format(self.dds_amplitude)
         val += ", steps={})".format(self.steps)
         return val
 
@@ -877,6 +744,7 @@ class Transition:
             default_amplitude (float, optional): The default amplitude for pulses on the transition. Defaults to None, in which case the first element of amplitudes is used.
             frequency_offset (float, optional): The frequency (in Hertz) of the tone that is mixed with the synthesizer output. The actual output frequency of the synthesizer is :code:`frequency - frequency_offset`. Defaults to 0.
         """
+        print('Transition init!')
         if isinstance(amplitudes, dict):
             amplitudes_list = []
             Rabi_frequencies = []
@@ -999,34 +867,34 @@ class SetTransition(RFBlock):
         return super().compile(state)
 
 
-#def todB(amplitude_lin):
-#    """
-#    todB(amplitude_lin)
-#
-#    Converts an amplitude ratio from linear to decibels per :math:`A_{dB} = 20 \\log_{10}(A)`.
-#
-#    Args:
-#        amplitude_lin (float): An amplitude ratio.
-#
-#    Returns:
-#        float: The amplitude ratio in decibels.
-#    """
-#    return 20.0 * np.log10(amplitude_lin)
+def todB(amplitude_lin):
+    """
+    todB(amplitude_lin)
+
+    Converts an amplitude ratio from linear to decibels per :math:`A_{dB} = 20 \\log_{10}(A)`.
+
+    Args:
+        amplitude_lin (float): An amplitude ratio.
+
+    Returns:
+        float: The amplitude ratio in decibels.
+    """
+    return 20.0 * np.log10(amplitude_lin)
 
 
-#def fromdB(amplitude_dB):
-#    """
-#    fromdB(amplitude_dB)
-#
-#    Converts an amplitude ratio from decibels to linear per :math:`A = 10^{A_{dB}/20}`.
-#
-#    Args:
-#        amplitude_lin (float): An amplitude ratio in decibels.
-#
-#    Returns:
-#        float: The amplitude ratio.
-#    """
-#    return 10 ** (amplitude_dB / 20)
+def fromdB(amplitude_dB):
+    """
+    fromdB(amplitude_dB)
+
+    Converts an amplitude ratio from decibels to linear per :math:`A = 10^{A_{dB}/20}`.
+
+    Args:
+        amplitude_lin (float): An amplitude ratio in decibels.
+
+    Returns:
+        float: The amplitude ratio.
+    """
+    return 10 ** (amplitude_dB / 20)
 
 
 def Pulse(
@@ -1766,17 +1634,18 @@ def compile_sequence(
     all_durations = {}
 
     sequence = deepcopy(sequence)
-    for channel, stack in sequence.items():  # iterate DDS output channels
-        stack.reverse()  # allow removing elements in chronological order by extracting them from the end of the list (reduces complexity(?))
+    for channel, stack in sequence.items(): # iterate DDS output channels
+        stack.reverse()
         state = SequenceState()
         compiled_channel = []
-        while len(stack) > 0:  # iterate trigger segments within the sequence
+        while len(stack) > 0: # iterate trigger segments within the sequence
+            print('trig seq')
             head = stack.pop()
             if isinstance(head, List):
-                head.reverse()  # ensure same order as stack
+                head.reverse()
                 stack += head
                 continue
-            if hasattr(head, "atomic") and head.atomic:  # process single pulse
+            if hasattr(head, "atomic") and head.atomic:
                 block = head.compile(state)
                 if (
                     len(compiled_channel) > 0
@@ -1822,28 +1691,15 @@ def compile_sequence(
                             )
                         else:
                             block.duration += adjust_next.duration
-
-                    # adjust remaining None entries
+                    if block.amplitude is None:
+                        block.amplitude = state.amplitude
                     if block.phase is None:
                         block.phase = state.phase
                     if block.frequency is None:
                         block.frequency = state.frequency
-                    if block.pd_setpoint is None:
-                        block.pd_setpoint = state.pd_setpoint
-                    if block.pd_selection is None:
-                        block.pd_selection = state.pd_selection
-                    if block.clk_shutter is None:
-                        block.clk_shutter = state.clk_shutter
-                    if block.clk_aom is None:
-                        block.clk_aom = state.clk_aom
-                    if block.additional_params is None:
-                        block.additional_params = state.additional_params
-                    if block.dds_amplitude is None:
-                        block.dds_amplitude = state.dds_amplitude
-
                     if block.duration > 0:
                         compiled_channel.append(block)
-                    elif block.dds_wait_for_trigger:
+                    elif block.wait_for_trigger:
                         if block.duration == 0:
                             block.duration = dds_settings.T_MIN
                         compiled_channel.append(block)
@@ -1851,24 +1707,24 @@ def compile_sequence(
                         block.duration == 0
                         and len(stack) > 0
                         and isinstance(stack[-1], Timestamp)
-                        and stack[-1].dds_wait_for_trigger
+                        and stack[-1].wait_for_trigger
                     ):
                         block.duration = dds_settings.T_MIN
                         compiled_channel.append(block)
-                    block.dds_digital_out = state.dds_digital_out
+                    block.digital_out = state.digital_out
                 elif isinstance(block, AdjustNextDuration):
                     compiled_channel.append(block)
                 else:
                     raise TypeError("Cannot add a {} to the sequence".format(block))
-            else:  # process composite pulse sequence
+            else:
                 blocks = head.compile(state)
-                blocks.reverse()  # ensure same order as stack
+                blocks.reverse()
                 stack.extend(blocks)
         durations = []
-        duration = 0.
+        duration = 0
         compiled_channel = [b for b in compiled_channel if isinstance(b, Timestamp)]
         for block in compiled_channel:
-            if block.dds_wait_for_trigger:
+            if block.wait_for_trigger:
                 durations.append(duration)
                 duration = 0
             block.duration, duration = duration, block.duration + duration
@@ -1883,18 +1739,13 @@ def compile_sequence(
             compiled_channel.append(
                 Timestamp(
                     duration,
+                    amplitude=state.amplitude,
                     phase=state.phase,
                     frequency=state.frequency,
-                    pd_setpoint=state.pd_setpoint,
-                    pd_selection=state.pd_selection,
-                    clk_shutter=state.clk_shutter,
-                    clk_aom=state.clk_aom,
-                    additional_params=state.additional_params,
-                    dds_amplitude=state.dds_amplitude,
-                    dds_digital_out=state.dds_digital_out,
+                    digital_out=state.digital_out,
                 )
             )
-        terminator = Timestamp(0, 0, 0, 0, dds_digital_out=[False] * dds_settings.N_DIGITAL)
+        terminator = Timestamp(0, 0, 0, 0, digital_out=[False] * dds_settings.N_DIGITAL)
         terminator.phase_update = 0
         compiled_channel.append(terminator)
         if len(compiled_channel) > dds_settings.N_ADDRESSES:
@@ -1905,24 +1756,19 @@ def compile_sequence(
             )
         compiled[channel] = compiled_channel
         all_durations[channel] = durations
-
     if output_json:
+
         class RFBlockEncoder(json.JSONEncoder):
             def default(self, obj):
                 if isinstance(obj, Timestamp):
                     return {
                         "timestamp": obj.duration,
+                        "phase_update": obj.phase_update,
                         "phase": obj.phase,
+                        "amplitude": obj.amplitude,
                         "frequency": obj.frequency,
-                        "pd_setpoint": obj.pd_setpoint,
-                        "pd_selection": obj.pd_selection,
-                        "clk_shutter": obj.clk_shutter,
-                        "clk_aom": obj.clk_aom,
-                        "additional_params": obj.additional_params,
-                        "dds_amplitude": obj.dds_amplitude,
-                        "dds_phase_update": obj.dds_phase_update,
-                        "dds_wait_for_trigger": obj.dds_wait_for_trigger,
-                        "dds_digital_out": obj.dds_digital_out,
+                        "wait_for_trigger": obj.wait_for_trigger,
+                        "digital_out": obj.digital_out,
                     }
                 if isinstance(obj, np.bool_):
                     return bool(obj)
@@ -1931,150 +1777,6 @@ def compile_sequence(
         return json.dumps(compiled, cls=RFBlockEncoder), all_durations
     else:
         return compiled, all_durations
-
-
-@dataclass
-class SequencerMapping:
-    """
-    Stores the channel mapping (target device name and channel name) for sequence signals
-    that may be programmed on Sequencer channels.
-
-    Parameters:
-        pd_setpoint (str): Clock PD channel name
-        pd_selection (str): Clock PD selection channel name
-        clk_shutter (str): Clock shutter control channel name
-        clk_aom (str): Clock AOM control channel name
-        dds_trigger (str): Trigger channel for FPGA-DDS
-        dds_trigger_duration (float): Duration of DDS trigger
-        additional_params (dict): Signal name (as used in the sequence; dict key) and target name (dict value) pairs. Defaults to None.
-    """
-    pd_setpoint: str = "DACE06@E06"
-    pd_selection: str = "AOSense Heater Enable@D14"
-    clk_shutter: str = "LR AOM Sweep@C02"
-    clk_aom: str = "LR/HR [hi/lo]@C04"
-    dds_trigger: str = "LR Demod Sweep@C03"
-    dds_trigger_duration: float = 1e-3
-    additional_params: dict = None
-
-
-def read_sequencer_defaults(seq_file: str, timestep_index: int) -> dict:
-    """
-    Extracts the output values at a given index for each Sequencer output channel.
-
-    Args:
-        seq_file (str): Path to Sequencer sequence file
-        timestep_index (int): Index for the timestep within the Sequencer sequence file.
-
-    Returns:
-        defaults (dict): Default output values ('vf' for analog channels) for each Sequencer channel.
-    """
-    with open(seq_file) as f:
-        seq = json.load(f)
-
-        defaults = {}
-        for ch,timesteps in seq.items():
-            if 'out' in timesteps[timestep_index].keys():  # digital channel
-                defaults[ch] = {'val': timesteps[timestep_index]['out'],  # digital output value
-                                'digital': True}
-            else:  # analog channel
-                defaults[ch] = {'val': timesteps[timestep_index]['vf'],  # output voltage at the end of the timestep
-                                'digital': False}
-        return defaults
-
-
-def build_sequencer_timesteps(durations: List[float], values: List, digital: bool):
-    if digital:
-        return [{'dt': durations[i], 'out': int(values[i])} for i in range(len(durations))]
-    else:
-        return [{'dt': durations[i],
-                 'type': 'lin',
-                 'vf': set_float_or_str(values[i])} for i in range(len(durations))]
-
-
-def remove_channel(sequencer_channels, element_to_remove):
-    try:
-        sequencer_channels.remove(element_to_remove)
-    except ValueError:
-        raise ValueError('{} is not a valid Sequencer channel.'.format(element_to_remove))
-
-
-def construct_sequencer_sequence(compiled_dds_sequence: List[RFBlock],
-                                 sequencer_defaults_sequence_file: str,
-                                 default_timestep_index: int = -1,
-                                 sequencer_mapping: SequencerMapping = SequencerMapping()):
-    """
-    Constructs a Sequencer sequence JSON string based on the provided DDS sequence in
-    combination with the SequencerMapping.
-    All Sequencer channels which are not used in the DDS sequence are set to the values
-    specified in the timestep index default_timestep_index of the
-    sequencer_defaults_sequence. These values are kept fixed throughout the entire sequence.
-
-    Args:
-        compiled_dds_sequence (List[RFBlock]): DDS sequence (output of compile_sequence()).
-        sequencer_defaults_sequence_file (str): Path to a Sequencer reference sequence fiel for unused Sequencer channel values.
-        default_timestep_index (int): Time index in the Sequencer defaults sequence from which to extract the reference values. Defaults to -1.
-        sequencer_mapping (:class:`SequencerMapping`): Channel mapping for non-DDS signals. Defaults to SequencerMapping() (the default mapping of the required channels).
-    Returns:
-        seq_str (str): JSON Sequencer string
-    """
-    compiled_dds_sequence = compiled_dds_sequence[0]  # extract first programmed channel
-
-    if (compiled_dds_sequence[0].additional_params is not None and sequencer_mapping.additional_params is None) or \
-       (compiled_dds_sequence[0].additional_params is None and sequencer_mapping.additional_params is not None):
-        raise ValueError("additional_params in the DDS sequence and Sequencer mapping are not both None. They must always have the same keys.")
-    if compiled_dds_sequence[0].additional_params is not None and \
-       (compiled_dds_sequence[0].additional_params.keys() != sequencer_mapping.additional_params.keys()):
-        raise KeyError("Keys of additional_params in DDS sequence does not match the keys of SequencerMapping.additional_params; they must always be the same.  sequence.additional_params.keys(): {},  SequencerMapping.additional_params.keys(): {}".format(
-            list(compiled_dds_sequence[0].additional_params.keys()),
-            list(sequencer_mapping.additional_params.keys())))
-
-    sequencer_defaults = read_sequencer_defaults(sequencer_defaults_sequence_file, default_timestep_index)
-
-    compiled_dds_sequence = compiled_dds_sequence[:-1]  # remove DDS sequencer terminator
-
-    # build Sequencer sequence
-    seq = {}
-    sequencer_channels = list(sequencer_defaults.keys())
-    durations = [ts.duration for ts in compiled_dds_sequence]  # these are not the durations but timepoints of value cahnges
-    durations = np.diff(durations)  # convert timepoints to durations
-    #durations = np.insert(durations, 0, sequencer_mapping.dds_trigger_duration)
-
-    # channels relevant for clock pulses (i.e. mapped in DDS sequence)
-    trig_vals = np.full(durations.size, 0, dtype=int)
-    trig_vals[durations<=sequencer_mapping.dds_trigger_duration] = 1
-    seq[sequencer_mapping.dds_trigger] = build_sequencer_timesteps(durations, trig_vals, digital=True)
-    remove_channel(sequencer_channels, sequencer_mapping.dds_trigger)
-    seq[sequencer_mapping.pd_setpoint] = build_sequencer_timesteps(durations,
-                                                                   [ts.pd_setpoint for ts in compiled_dds_sequence],
-                                                                   digital=False)
-    remove_channel(sequencer_channels, sequencer_mapping.pd_setpoint)
-    seq[sequencer_mapping.pd_selection] = build_sequencer_timesteps(durations,
-                                                                    [ts.pd_selection for ts in compiled_dds_sequence],
-                                                                    digital=True)
-    remove_channel(sequencer_channels, sequencer_mapping.pd_selection)
-    seq[sequencer_mapping.clk_shutter] = build_sequencer_timesteps(durations,
-                                                                   [ts.clk_shutter for ts in compiled_dds_sequence],
-                                                                   digital=True)
-    remove_channel(sequencer_channels, sequencer_mapping.clk_shutter)
-    seq[sequencer_mapping.clk_aom] = build_sequencer_timesteps(durations,
-                                                               [ts.clk_aom for ts in compiled_dds_sequence],
-                                                               digital=True)
-    remove_channel(sequencer_channels, sequencer_mapping.clk_aom)
-    if sequencer_mapping.additional_params is not None:
-        for signal,ch in sequencer_mapping.additional_params.items():
-            seq[ch] = build_sequencer_timesteps(durations,
-                                                [ts.additional_params[signal] for ts in compiled_dds_sequence],
-                                                digital=sequencer_defaults[ch]['digital'])
-            remove_channel(sequencer_channels, ch)
-
-    # set remaining Sequencer channels to the default values
-    for ch in sequencer_channels:
-        defaults = sequencer_defaults[ch]
-        seq[ch] = build_sequencer_timesteps(durations,
-                                            [defaults['val']]*len(durations),
-                                            digital=defaults['digital'])
-
-    return json.dumps(seq)
 
 
 def extract_time_traces(seq: List[RFBlock]):
