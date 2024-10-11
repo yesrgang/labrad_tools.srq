@@ -6,6 +6,9 @@ sys.path.append('../') # for fpga_dds_sequences.py
 import fpga_dds_sequences as ds
 import jsonpickle
 
+sequence_path = 'Q:\\sequences'  # required for building FPGA-DDS sequences
+ds.set_sequence_searchpath(sequence_path)
+
 
 def get_OLPD_SP(ILPD_SP):
     return (0.9405 * ILPD_SP + 0.1645 - 0.167)/1.009
@@ -34,13 +37,23 @@ pv['si21.probe_detuning'] = detunings
 
 
 ### FPGA-DDS programming ###
-seq = [ds.RectangularPulse(1e-3, 1, phase=0., frequency=f_pump),
-       ds.Wait(10e-3),
-       ds.RectangularPulse(1e-3, 1, phase=np.pi)]
+#seq = [ds.RectangularPulse(1e-3, 1, phase=0., frequency=f_pump),
+#       ds.Wait(10e-3),
+#       ds.RectangularPulse(1e-3, 1, phase=np.pi)]
+seq = [ds.Timestamp(1e-3, 0., f_pump, 5, dds_amplitude=.8, additional_params={'cleanup': True}),
+       ds.Timestamp(3)]
 seq = {0: seq}
-pv['fpga_dds.verbose'] = 0 # put this into defaults!
+pv['fpga_dds.verbose'] = 1 # set this to 0 in defaults!
 pv['fpga_dds.sequences'] = jsonpickle.dumps(seq, keys=True)
+
+dds_pulses_str = ds.construct_sequencer_sequence(ds.compile_sequence(seq, False)[0],
+                                                 'rabi-clock-cleanup-CLKOLPD',  # use last timestep for default values
+                                                 sequencer_mapping=ds.SequencerMapping(additional_params=
+                                                     {'cleanup': 'HR Abs. AOM@A02'}))
+pv['sequencer.jsonstrs'] = {'dds_pulses': dds_pulses_str}
+spectroscopy_sequence = 'dds_pulses.jsonstr'
 ### END FPGA-DDS programming ###
+
 
 pv['ad9914_clock_dds.dds_profiles'] = {'0': [f_pump+100, 0., 0.8],
                                        '1': [f_pump+100, 0., 0.8],
@@ -60,7 +73,7 @@ pv['ad9914_clock_dds.dds_phase_2'] = 0.
 pv['ad9914_clock_dds.dds_prog_modulus_freq'] = f_pump
 pv['ad9914_clock_dds.program_dds'] = 1.
 
-spectroscopy_sequence = 'rabi-clock-x-CLKOLPD'
+#spectroscopy_sequence = 'rabi-clock-x-CLKOLPD'
 #spectroscopy_sequence = 'rabi-clock-x'
 
 times0 = np.linspace(1e-6, 2*T_pi , 20)

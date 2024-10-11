@@ -15,6 +15,9 @@ import json
 # import jsonpickle
 from dataclasses import dataclass
 
+#import os, time, datetime
+import os, datetime
+
 #import plotly.graph_objects as go
 #import plotly.express as px
 #from plotly.subplots import make_subplots
@@ -223,10 +226,10 @@ def validate_parameters(
     
     if phase is not None and not np.isreal(phase):
         raise ValueError("Phase {} must be a real number.".format(phase))
-    if frequency is not None and (frequency < 0 or frequency > dds_settings.F_MAX):
-        raise ValueError(
-            "Frequency {} must be between 0 and {}.".format(frequency, dds_settings.F_MAX)
-        )
+    #if frequency is not None and (frequency < 0 or frequency > dds_settings.F_MAX):
+    #    raise ValueError(
+    #        "Frequency {} must be between 0 and {}.".format(frequency, dds_settings.F_MAX)
+    #    )
     if pd_setpoint is not None and (pd_setpoint < -10. or pd_setpoint > 10.):
         raise ValueError("PD setpoint {} must be between -10 and +10.".format(pd_setpoint))
     if additional_params is not None:
@@ -1957,6 +1960,26 @@ class SequencerMapping:
     additional_params: dict = None
 
 
+# the following are some helper-functions and objects for construct_sequencer_sequence()
+sequence_searchpath = ''
+def set_sequence_searchpath(path):
+    global sequence_searchpath
+    sequence_searchpath = path
+
+
+class SequenceNotFoundError(Exception):
+    """ Unable to find sequence """
+
+
+def find_sequencer_sequence_path(seq_name, sequence_searchpath):
+    for i in range(365):
+        day = datetime.date.today() - datetime.timedelta(i)
+        seq_path = os.path.join(sequence_searchpath, day.strftime('%Y%m%d'), seq_name)
+        if os.path.exists(seq_path):
+            return seq_path
+    raise SequenceNotFoundError(seq_name)
+
+
 def read_sequencer_defaults(seq_file: str, timestep_index: int) -> dict:
     """
     Extracts the output values at a given index for each Sequencer output channel.
@@ -2001,6 +2024,7 @@ def remove_channel(sequencer_channels, element_to_remove):
 def construct_sequencer_sequence(compiled_dds_sequence: List[RFBlock],
                                  sequencer_defaults_sequence_file: str,
                                  default_timestep_index: int = -1,
+                                 sequence_searchpth: str = None,
                                  sequencer_mapping: SequencerMapping = SequencerMapping()):
     """
     Constructs a Sequencer sequence JSON string based on the provided DDS sequence in
@@ -2011,8 +2035,9 @@ def construct_sequencer_sequence(compiled_dds_sequence: List[RFBlock],
 
     Args:
         compiled_dds_sequence (List[RFBlock]): DDS sequence (output of compile_sequence()).
-        sequencer_defaults_sequence_file (str): Path to a Sequencer reference sequence fiel for unused Sequencer channel values.
+        sequencer_defaults_sequence_file (str): File name of a Sequencer reference sequence for unused Sequencer channel values.
         default_timestep_index (int): Time index in the Sequencer defaults sequence from which to extract the reference values. Defaults to -1.
+        sequence_searchpth (str): Path to sequence directory in which to search for the default sequence. Defaults to None, which is replaced by the value of the global variable sequence_searchpath (initialized via :func"`set_sequence_searchpath`).
         sequencer_mapping (:class:`SequencerMapping`): Channel mapping for non-DDS signals. Defaults to SequencerMapping() (the default mapping of the required channels).
     Returns:
         seq_str (str): JSON Sequencer string
@@ -2028,7 +2053,11 @@ def construct_sequencer_sequence(compiled_dds_sequence: List[RFBlock],
             list(compiled_dds_sequence[0].additional_params.keys()),
             list(sequencer_mapping.additional_params.keys())))
 
-    sequencer_defaults = read_sequencer_defaults(sequencer_defaults_sequence_file, default_timestep_index)
+    global sequence_searchpath
+    if sequence_searchpth is None:
+        sequence_searchpth = sequence_searchpath
+    default_seq_path = find_sequencer_sequence_path(sequencer_defaults_sequence_file, sequence_searchpth)
+    sequencer_defaults = read_sequencer_defaults(default_seq_path, default_timestep_index)
 
     compiled_dds_sequence = compiled_dds_sequence[:-1]  # remove DDS sequencer terminator
 
