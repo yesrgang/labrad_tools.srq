@@ -56,6 +56,41 @@ class Sequence(ConductorParameter):
     
     def update(self):
         """ value is list of strings """
+        ## check for the presence of raw JSON strings in the sequence (which are not loaded from sequence files)
+        #has_jsonstr = False
+        #for string in self.value:
+        #    if '.jsonstr' in string:
+        #        print('jsonstr detected!!')
+        #        has_jsonstr = True
+        #        break
+        ## load raw JSON string sequences
+        #print('sequencer.sequence')
+        ##try:
+        #    #jsonstr_seqs = json.loads(self.cxn.conductor.get_parameter_values('{"sequencer.jsonstrs":{}}'))['sequencer.jsonstrs']
+        #if has_jsonstr:
+        #    jsonstr_seqs = None
+        #    try:
+        #        #print(self.cxn.servers)
+        #        if 'conductor' in str(self.cxn.servers):
+        #            print('yes!')
+        #            jsonstr_seqs = self.cxn.conductor.get_parameter_values('{"sequencer.jsonstrs":{}}')
+        #            #jsonstr_seqs = self.cxn.conductor.get_active_parameters()
+        #            #print(self.cxn.conductor.get_configured_parameters())
+        #            #time.sleep(1)
+        #        #print(type(self.cxn))
+        #        #print(self.cxn.conductor.get_configured_parameters())
+        #    except Exception as e:
+        #        print(e)
+        #        print('no conductor!')
+        #        #time.sleep(3)
+        #    #print(self.cxn.conductor.get_configured_parameters())
+        #    #jsonstr_seqs = self.cxn.conductor.get_parameter_values('{"sequencer.jsonstrs":{}}')
+        #        #jsonstr_seqs = self.cxn.conductor.get_parameter_values('{}')
+        #    #except Exception as e:
+        #    #    print(e)
+        #    #    jsonstr_seqs = None
+        #    print(jsonstr_seqs)
+
         # first check if we are running
         request = {self.sequencer_master_device: None}
         response = json.loads(self.sequencer_server.running(json.dumps(request)))
@@ -70,7 +105,6 @@ class Sequence(ConductorParameter):
                 self.sequencer_server.running(json.dumps(request))
 
         if self.loop:
-            print(1)
             # then check what sequence is running
             request = {device_name: None for device_name in self.sequencer_devices}
             what_is_running = json.loads(self.sequencer_server.sequence(json.dumps(request)))
@@ -86,14 +120,10 @@ class Sequence(ConductorParameter):
                 self.sequencer_server.sequence(json.dumps(request))
                 self.server.experiment['repeat_shot'] = True
             else:
-                print(1)
                 nv = self.next_value
-                print(2)
                 request = {device_name: nv for device_name in self.sequencer_devices}
-                print(3)
                 self.sequencer_server.sequence(json.dumps(request))
                 #self.sequencer_server.set_sequence_fast(json.dumps(request))
-                print(4)
 
         if (not self.loop) and running:
             raise Exception('something is wrong with sequencer.sequence')
