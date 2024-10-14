@@ -2103,7 +2103,8 @@ def construct_sequencer_sequence(compiled_dds_sequence: List[RFBlock],
                                             [defaults['val']]*len(durations),
                                             digital=defaults['digital'])
 
-    return json.dumps(seq)
+    #return json.dumps(seq)
+    return seq
 
 
 def extract_time_traces(seq: List[RFBlock]):
