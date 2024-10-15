@@ -35,23 +35,33 @@ detunings = f_pump
 pv['si21.cleanup_detuning'] = f_pump
 pv['si21.probe_detuning'] = detunings
 
+times = np.linspace(1e-3, 1e-2, 20)
+print(times)
 
 ### FPGA-DDS programming ###
-#seq = [ds.RectangularPulse(1e-3, 1, phase=0., frequency=f_pump),
-#       ds.Wait(10e-3),
-#       ds.RectangularPulse(1e-3, 1, phase=np.pi)]
-seq = [ds.Timestamp(1e-3, 0., f_pump, 5, dds_amplitude=.8, additional_params={'cleanup': True}),
-       ds.Timestamp(3)]
-seq = {0: seq}
-pv['fpga_dds.verbose'] = 1 # set this to 0 in defaults!
-pv['fpga_dds.sequences'] = jsonpickle.dumps(seq, keys=True)
+pv['fpga_dds.verbose'] = 0 # set this to 0 in defaults!
 
-# compile DDS sequence for Sequencer
-dds_pulses = ds.construct_sequencer_sequence(ds.compile_sequence(seq, False)[0],
-                                             'rabi-clock-cleanup-CLKOLPD',  # use last timestep for default values
-                                             sequencer_mapping=ds.SequencerMapping(additional_params=
-                                                 {'cleanup': 'HR Abs. AOM@A02'}))
-pv['sequencer.virtseq'] = {'dds_pulses': dds_pulses}
+dds_seqs = []
+virtseqs = []
+for t in times:
+    #seq = [ds.RectangularPulse(1e-3, 1, phase=0., frequency=f_pump),
+    #       ds.Wait(10e-3),
+    #       ds.RectangularPulse(1e-3, 1, phase=np.pi)]
+    seq = [ds.Timestamp(t, np.pi/2, f_pump, 5, dds_amplitude=.8, additional_params={'cleanup': True}),
+           ds.Timestamp(30e-3)]
+    seq = {0: seq}
+    #print(seq)
+    dds_seqs.append(jsonpickle.dumps(seq, keys=True))
+
+    # compile DDS sequence for Sequencer
+    dds_pulses = ds.construct_sequencer_sequence(ds.compile_sequence(seq, False)[0],
+                                                 'rabi-clock-cleanup-CLKOLPD',  # use last timestep for default values
+                                                 sequencer_mapping=ds.SequencerMapping(additional_params=
+                                                     {'cleanup': 'HR Abs. AOM@A02'}))
+    virtseqs.append({'dds_pulses': dds_pulses})
+
+pv['fpga_dds.sequences'] = dds_seqs
+pv['sequencer.virtseqs'] = virtseqs
 spectroscopy_sequence = 'dds_pulses.virtseq'
 ### END FPGA-DDS programming ###
 
@@ -77,19 +87,20 @@ pv['ad9914_clock_dds.program_dds'] = 1.
 #spectroscopy_sequence = 'rabi-clock-x-CLKOLPD'
 #spectroscopy_sequence = 'rabi-clock-x'
 
-times0 = np.linspace(1e-6, 2*T_pi , 20)
-times1 = np.linspace(8*T_pi, 10*T_pi , 21)
-times  = np.concatenate([times0, times1])
-#times = np.linspace(1e-6, 4 * T_pi , 41)
-#times = np.repeat(100*T_pi, 10)
-
-np.random.shuffle(times)
-print(times)
+#times0 = np.linspace(1e-6, 2*T_pi , 20)
+#times1 = np.linspace(8*T_pi, 10*T_pi , 21)
+#times  = np.concatenate([times0, times1])
+##times = np.linspace(1e-6, 4 * T_pi , 41)
+##times = np.repeat(100*T_pi, 10)
+#
+#np.random.shuffle(times)
+#print(times)
 
 pv['sequencer.clock-intensity-pi'] = 0.2 # cleanup
 pv['sequencer.OLPD-clock-intensity-pi'] = get_OLPD_SP(pv['sequencer.clock-intensity-pi']) 
 
-pv['sequencer.Trabi-x'] = times
+#pv['sequencer.Trabi-x'] = times
+pv['sequencer.Trabi-x'] = 1e-3
 pv['sequencer.Trabi-pi'] = T_pi
 pv['sequencer.Trabi-pi2'] = T_pi / 2
 pv['sequencer.Trabi-cleanup'] = T_pi_clean
