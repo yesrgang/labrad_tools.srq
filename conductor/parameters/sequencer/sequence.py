@@ -56,40 +56,6 @@ class Sequence(ConductorParameter):
     
     def update(self):
         """ value is list of strings """
-        ## check for the presence of raw JSON strings in the sequence (which are not loaded from sequence files)
-        #has_jsonstr = False
-        #for string in self.value:
-        #    if '.jsonstr' in string:
-        #        print('jsonstr detected!!')
-        #        has_jsonstr = True
-        #        break
-        ## load raw JSON string sequences
-        #print('sequencer.sequence')
-        ##try:
-        #    #jsonstr_seqs = json.loads(self.cxn.conductor.get_parameter_values('{"sequencer.jsonstrs":{}}'))['sequencer.jsonstrs']
-        #if has_jsonstr:
-        #    jsonstr_seqs = None
-        #    try:
-        #        #print(self.cxn.servers)
-        #        if 'conductor' in str(self.cxn.servers):
-        #            print('yes!')
-        #            jsonstr_seqs = self.cxn.conductor.get_parameter_values('{"sequencer.jsonstrs":{}}')
-        #            #jsonstr_seqs = self.cxn.conductor.get_active_parameters()
-        #            #print(self.cxn.conductor.get_configured_parameters())
-        #            #time.sleep(1)
-        #        #print(type(self.cxn))
-        #        #print(self.cxn.conductor.get_configured_parameters())
-        #    except Exception as e:
-        #        print(e)
-        #        print('no conductor!')
-        #        #time.sleep(3)
-        #    #print(self.cxn.conductor.get_configured_parameters())
-        #    #jsonstr_seqs = self.cxn.conductor.get_parameter_values('{"sequencer.jsonstrs":{}}')
-        #        #jsonstr_seqs = self.cxn.conductor.get_parameter_values('{}')
-        #    #except Exception as e:
-        #    #    print(e)
-        #    #    jsonstr_seqs = None
-        #    print(jsonstr_seqs)
 
         # first check if we are running
         request = {self.sequencer_master_device: None}

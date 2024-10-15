@@ -13,9 +13,9 @@ class Virtseqs(ConductorParameter):
                   # trigger before sequencer.sequence
 
     autostart = False
-    #value_type = 'single'
+    value_type = 'single'
     #value_type = 'list' # array
-    value_type = 'data' # dict
+    #value_type = 'data' # list is not unpacked and index is not advanced between shots
 
 
     sequencer_servername = 'sequencer'
