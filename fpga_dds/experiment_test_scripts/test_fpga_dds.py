@@ -46,12 +46,13 @@ seq = {0: seq}
 pv['fpga_dds.verbose'] = 1 # set this to 0 in defaults!
 pv['fpga_dds.sequences'] = jsonpickle.dumps(seq, keys=True)
 
+# compile DDS sequence for Sequencer
 dds_pulses = ds.construct_sequencer_sequence(ds.compile_sequence(seq, False)[0],
                                              'rabi-clock-cleanup-CLKOLPD',  # use last timestep for default values
                                              sequencer_mapping=ds.SequencerMapping(additional_params=
                                                  {'cleanup': 'HR Abs. AOM@A02'}))
-pv['sequencer.jsonstrs'] = {'dds_pulses': dds_pulses}
-spectroscopy_sequence = 'dds_pulses.jsonstr'
+pv['sequencer.virtseq'] = {'dds_pulses': dds_pulses}
+spectroscopy_sequence = 'dds_pulses.virtseq'
 ### END FPGA-DDS programming ###
 
 
