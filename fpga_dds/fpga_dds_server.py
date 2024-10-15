@@ -258,13 +258,13 @@ class SynthesizerServer(LabradServer):
         buffers = []
         for i, s in enumerate(timestamps):
             timestamp = s["timestamp"]
-            phase_update = s["phase_update"]
+            phase_update = s["dds_phase_update"]
             phase = s["phase"]
             address = i
-            amplitude = s["amplitude"]
+            amplitude = s["dds_amplitude"]
             frequency = s["frequency"]
-            wait_for_trigger = bool(s["wait_for_trigger"])
-            digital_out = s["digital_out"]
+            wait_for_trigger = bool(s["dds_wait_for_trigger"])
+            digital_out = s["dds_digital_out"]
             buffers += SynthesizerServer.compile_timestamp(channel, address, timestamp, phase_update, phase, amplitude, frequency, wait_for_trigger, digital_out, verbose)
         print("Writing Channel {}.".format(channel))
         for b in buffers:
@@ -292,9 +292,10 @@ class SynthesizerServer(LabradServer):
 
         # adjust frequency of each segment in the sequence
         for _,ts_list in timestamps.items():
-          for el in ts_list:
-            if hasattr(el, 'frequency') and not el.frequency is None:
-              el.frequency = freq_mult * el.frequency + freq_offs
+          #for el in ts_list:
+          #  if hasattr(el, 'frequency') and not el.frequency is None:
+          #    el.frequency = freq_mult * el.frequency + freq_offs
+          ds.scale_frequency(ts_list, freq_offs, freq_mult)
 
         if compile:
             timestamps = loads(ds.compile_sequence(timestamps)[0], keys=True)

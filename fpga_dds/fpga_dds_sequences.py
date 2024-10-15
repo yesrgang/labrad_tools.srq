@@ -1936,13 +1936,31 @@ def compile_sequence(
         return compiled, all_durations
 
 
+def scale_frequency(seq: List[RFBlock], offs: float, mult: float = 1.) -> List[RFBlock]:
+    """
+    Adjusts the freuqency of each element of the sequence by multiplying it by mult and adding offs.
+    This function replaces the frequencies in-place and does not copy the sequence.
+
+    Args:
+        seq (List[RFBlock]): Sequence of Pulses, Timestamps, etc.
+        offs (float): Offset frequency in Hz added to the frequency of every sequence element (after multiplying).
+        mult (float): Scale factor for each frequency of the sequence. Defaults to 1.0.
+    #Returns:
+    #    seq (List[RFBlock]): Sequence of Pulses, Timestamps, etc. with adjusted frequencies.
+    """
+    for el in seq:
+        if hasattr(el, 'frequency') and not el.frequency is None:
+            el.frequency = mult * el.frequency + offs
+    #return seq
+
+
 @dataclass
 class SequencerMapping:
     """
     Stores the channel mapping (target device name and channel name) for sequence signals
     that may be programmed on Sequencer channels.
 
-    Parameters:
+    Args:
         pd_setpoint (str): Clock PD channel name
         pd_selection (str): Clock PD selection channel name
         clk_shutter (str): Clock shutter control channel name
