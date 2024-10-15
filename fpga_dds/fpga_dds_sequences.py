@@ -1897,7 +1897,7 @@ def compile_sequence(
                     dds_digital_out=state.dds_digital_out,
                 )
             )
-        terminator = Timestamp(0, 0, 0, 0, dds_digital_out=[False] * dds_settings.N_DIGITAL)
+        terminator = Timestamp(0, 0, 0, 0, dds_amplitude=0, dds_digital_out=[False] * dds_settings.N_DIGITAL)
         terminator.phase_update = 0
         compiled_channel.append(terminator)
         if len(compiled_channel) > dds_settings.N_ADDRESSES:
