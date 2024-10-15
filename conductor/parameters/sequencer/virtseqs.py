@@ -3,12 +3,14 @@ import json
 import sys
 
 
-class Jsonstrs(ConductorParameter):
+class Virtseqs(ConductorParameter):
     """ 
-    Do stuff..?
+    Transfer sequence dictionaries to Sequencer which are not saved in a file but just in
+    a variable ("virtual sequences"): sequencer.virtseqs
     """
 
     priority = 11 # lowest number -> execute last;  i.e.: program last (after saving all required DDS parameters)
+                  # trigger before sequencer.sequence
 
     autostart = False
     #value_type = 'single'
@@ -24,7 +26,7 @@ class Jsonstrs(ConductorParameter):
 
     def update(self):
         if self.value is not None:
-            self.sequencer_server.set_jsonstr_sequences(json.dumps(self.value))
+            self.sequencer_server.set_virtual_sequences(json.dumps(self.value))
 
  
-Parameter = Jsonstrs
+Parameter = Virtseqs
