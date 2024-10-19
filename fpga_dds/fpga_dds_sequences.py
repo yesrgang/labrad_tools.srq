@@ -44,16 +44,16 @@ class SequenceState:
     def __init__(
         self,
         phase: float = 0,
+        pd_setpoint: float = 0,
         frequency: float = 1e6,
         transition: Transition = None,
-        pd_setpoint: float = 0,
         pd_selection: bool = False,
         clk_shutter: bool = False,
         clk_aom: bool = False,
         additional_params: dict = None,
         time: float = 0,
         tot_time: float = 0,
-        dds_amplitude: float = 0,
+        dds_amplitude: float = 1,
         dds_triggers: int = 0,
         syncpoints: List[SyncPoint] = [],
         dds_digital_out: List[bool] = [False] * 7,
@@ -61,23 +61,24 @@ class SequenceState:
         """
         Args:
             phase (float): The phase of the channel. Defaults to 0.
+            pd_setpoint (float): Setpoint of the clock PD. Defaults to 0.
             frequency (float): The frequency of the channel. Defaults to 1E6.
             transition (:class:`Transition`): The selected transition, as set by :class:`SetTransition`. Defaults to None.
-            pd_setpoint (float): Setpoint of the clock PD. Defaults to 0.
+            pd_selection (bool): Selects which PD to use for the intensity servo. Defaults to False.
             clk_shutter (bool): State of the clock shutter. Defaults to False.
             clk_aom (bool): State of the clock AOM. Defaults to False.
             additional_params (dict): Additional parameters ({"<param_name>": <value>}). Defaults to None.
             time (float): The time since the start or the last trigger. Defaults to 0.
             tot_time (float): The time since the start or the start of the sequence (first trigger). Defaults to 0.
-            dds_amplitude (float): The amplitude of the DDS channel. Defaults to 0.
+            dds_amplitude (float): The amplitude of the DDS channel. Defaults to 1.
             dds_triggers (int): The number of DDS triggers required so far. Defaults to 0.
             syncpoints (list of str): The ordered list of :class:`SyncPoint` so far. Defaults to :code:`[]`.
             dds_digital_out (list of bool): The state of the digital outputs. Defaults to :code:`[False]*7`.
         """
         self.phase = set_float(phase)
+        self.pd_setpoint = set_float(pd_setpoint)
         self.frequency = set_float(frequency)
         self.transition = transition
-        self.pd_setpoint = set_float(pd_setpoint)
         self.pd_selection = pd_selection
         self.clk_shutter = clk_shutter
         self.clk_aom = clk_aom
@@ -150,7 +151,7 @@ class RFPulse(RFBlock):
     A base class for RF pulses.
     """
 
-    @staticmethod
+    #@staticmethod
     def center(center: bool, sequence: List[RFBlock], duration: float):
         """
         center(center, sequence, duration):
@@ -170,14 +171,15 @@ class RFPulse(RFBlock):
         Returns:
             (list of :class:`RFBlock`): The sequence, centered if :code:`center`.
         """
-        if center:
-            return (
-                [AdjustPrevDuration(-duration / 2)]
-                + sequence
-                + [AdjustNextDuration(-duration / 2)]
-            )
-        else:
-            return sequence
+        #if center:
+        #    return (
+        #        [AdjustPrevDuration(-duration / 2)]
+        #        + sequence
+        #        + [AdjustNextDuration(-duration / 2)]
+        #    )
+        #else:
+        #    return sequence
+        return sequence  # the centering functionality is currently not being used
 
     @property
     def area(self) -> float:
@@ -197,9 +199,9 @@ class RFPulse(RFBlock):
 
 def validate_parameters(
     duration: float = None,
+    pd_setpoint: Optional[float] = None,
     phase: Optional[float] = None,
     frequency: Optional[float] = None,
-    pd_setpoint: Optional[float] = None,
     additional_params: Optional[dict] = None,
     dds_amplitude: Optional[float] = None,
 ) -> None:
@@ -210,9 +212,9 @@ def validate_parameters(
 
     Args:
         duration (float, optional): Duration in seconds. Checks that it's non-negative. Defaults to None.
+        pd_setpoint (float, optional): Setpoint in volts. Checks that it's between -10 and +10. Defaults to None.
         phase (float, optional): Phase in radians. Checks that it's a real number. Defaults to None.
         frequency (float, optional): Frequency in Hertz. Checks that it's between zero and :code:`F_MAX`. Defaults to None.
-        pd_setpoint (float, optional): Setpoint in volts. Checks that it's between -10 and +10. Defaults to None.
         additional_params (dict, optional): Checks that all values are either floats between -10 and +10 (analog channels) of bools (digital channels)
         dds_amplitude (float, optional): Amplitude relative to full scale. Checks that it's between zero and one. Defaults to None.
 
@@ -223,15 +225,14 @@ def validate_parameters(
         raise ValueError(
             "Duration {} must be between zero and {}.".format(duration, dds_settings.T_MAX)
         )
-    
+    if pd_setpoint is not None and (pd_setpoint < -10. or pd_setpoint > 10.):
+        raise ValueError("PD setpoint {} must be between -10 and +10.".format(pd_setpoint))
     if phase is not None and not np.isreal(phase):
         raise ValueError("Phase {} must be a real number.".format(phase))
     #if frequency is not None and (frequency < 0 or frequency > dds_settings.F_MAX):
     #    raise ValueError(
     #        "Frequency {} must be between 0 and {}.".format(frequency, dds_settings.F_MAX)
     #    )
-    if pd_setpoint is not None and (pd_setpoint < -10. or pd_setpoint > 10.):
-        raise ValueError("PD setpoint {} must be between -10 and +10.".format(pd_setpoint))
     if additional_params is not None:
         for key,val in additional_params.items():
             if type(val) is float and (val < -10. or val > 10.):
@@ -252,9 +253,9 @@ class Timestamp(RFBlock):
     def __init__(
         self,
         duration: float,
+        pd_setpoint: Optional[float] = None,
         phase: Optional[float] = None,
         frequency: Optional[float] = None,
-        pd_setpoint: Optional[float] = None,
         pd_selection: Optional[int] = None,
         clk_shutter: Optional[bool] = None,
         clk_aom: Optional[bool] = None,
@@ -267,9 +268,9 @@ class Timestamp(RFBlock):
         """
         Args:
             duration (float): The duration of the timestamp. If the duration is zero, the parameters override ommited parameters in the next Timestamp.
+            pd_setpoint (float, optional): Clock PD setpoint (the value corresponds to the PD before the atoms and may be converted to the one after the atoms, depending on the value of selected_pd)
             phase (float, optional): The phase of the tone in radians. Defaults to None, in which case the previous phase is maintained.
             frequency (float, optional): The frequency of the tone in Hertz. Defaults to None, in which case the previous frequency is maintained.
-            pd_setpoint (float, optional): Clock PD setpoint (the value corresponds to the PD before the atoms and may be converted to the one after the atoms, depending on the value of selected_pd)
             pd_selection (bool, optional): Use PD before/after the chamber as input for the intensity servo
             clk_shutter (bool, optional): Position of the clock laser shutter
             clk_aom (bool, optional): Clock AOM disable / intensity servo integrator hold
@@ -280,9 +281,9 @@ class Timestamp(RFBlock):
             dds_absolute_phase (bool, optional): If true, sets the phase to :code:`phase` radians at the beginning of the timestamp. Otherwise offsets the phase to :code:`phase` radians relative to a reference clock. If True, :code:`phase` must not be None. Defaults to False.
         """
         self.duration = set_float(duration)
+        self.pd_setpoint = set_float(pd_setpoint)
         self.phase = set_float(phase)
         self.frequency = set_float(frequency)
-        self.pd_setpoint = set_float(pd_setpoint)
         self.pd_selection = pd_selection
         self.clk_shutter = clk_shutter
         self.clk_aom = clk_aom
@@ -295,12 +296,12 @@ class Timestamp(RFBlock):
 
     def __repr__(self) -> str:
         val = "Timestamp({}".format(self.duration)
+        if self.pd_setpoint is not None:
+            val += ", pd_setpoint={}".format(self.pd_setpoint)
         if self.phase is not None:
             val += ", phase={}".format(self.phase)
         if self.frequency is not None:
             val += ", frequency={}".format(self.frequency)
-        if self.pd_setpoint is not None:
-            val += ", pd_setpoint={}".format(self.pd_setpoint)
         if self.pd_selection is not None:
             val += ", pd_selection={}".format(self.pd_selection)
         if self.clk_shutter is not None:
@@ -318,11 +319,13 @@ class Timestamp(RFBlock):
         return val + ")"
     
     def compile(self, state: Optional[SequenceState] = None) -> Timestamp:
-        validate_parameters(self.duration, self.phase, self.frequency, self.pd_setpoint, self.additional_params, self.dds_amplitude)
+        validate_parameters(self.duration, self.pd_setpoint, self.phase, self.frequency, self.additional_params, self.dds_amplitude)
         if self.dds_absolute_phase and self.phase is None:
             raise ValueError("Phase cannot be None if dds_absolute_phase is True")
         state.time += self.duration
         state.tot_time += self.duration
+        if self.pd_setpoint is not None:
+            state.pd_setpoint = self.pd_setpoint
         if self.dds_absolute_phase:
             self.dds_phase_update = 1
             state.phase = self.phase
@@ -331,8 +334,6 @@ class Timestamp(RFBlock):
             state.phase = self.phase
         if self.frequency is not None:
             state.frequency = self.frequency
-        if self.pd_setpoint is not None:
-            state.pd_setpoint = self.pd_setpoint
         if self.pd_selection is not None:
             state.pd_selection = self.pd_selection
         if self.clk_shutter is not None:
@@ -359,18 +360,39 @@ class Timestamp(RFBlock):
         return super().compile(state)
 
 
-class Wait(Timestamp):
+def Dark(duration: float,
+         pd_setpoint: Optional[float] = None,
+         phase: Optional[float] = None,
+         frequency: Optional[float] = None,
+         pd_selection: Optional[int] = None,
+         additional_params: Optional[dict] = None,
+         dds_amplitude: Optional[float] = None,
+         dds_wait_for_trigger: Optional[bool] = False,
+         dds_digital_out: Optional[dict] = {},
+         dds_absolute_phase: Optional[bool] = False,
+         ) -> List[RFBlock]:
     """
-    Waits for a fixed duration.
+    Returns a list of Timestamps implementing a dark time. Initially, the AOM is swithced off, and if the duration is long enough also the shutter is closed and the AOM is re-enabled. At the end of the dark time, the shutter is opened again and the AOM is switched back off. -> Don't place multiple Dark segments in series!
+
+    Args:
+        duration (float): The duration of the timestamp. If the duration is zero, the parameters override ommited parameters in the next Timestamp.
+        pd_setpoint (float, optional): Clock PD setpoint (the value corresponds to the PD before the atoms and may be converted to the one after the atoms, depending on the value of selected_pd)
+        phase (float, optional): The phase of the tone in radians. Defaults to None, in which case the previous phase is maintained.
+        frequency (float, optional): The frequency of the tone in Hertz. Defaults to None, in which case the previous frequency is maintained.
+        pd_selection (bool, optional): Use PD before/after the chamber as input for the intensity servo
+        additional_params (dict, optional): Additional Sequencer channels ({"<ch_name>": <value>}, with <ch_name> being the same as the onces referenced in :class:'SequencerMapping)
+        dds_amplitude (float, optional): The amplitude of the tone relative to full scale. Defaults to None, in which case the previous amplitude is maintained.
+        dds_wait_for_trigger (bool, optional): Whether to wait for a trigger to start the timestamp. Defaults to False.
+        dds_digital_out ({int: bool}, optional): A dictionary with keys (integers between 0 and 6) corresponding to the indices of digital outputs to set and boolean values corresponding to the desired state of the output. If a key is not present, the corresponding output is unchanged. Only used for the first channel. Defaults to {}.
+        dds_absolute_phase (bool, optional): If true, sets the phase to :code:`phase` radians at the beginning of the timestamp. Otherwise offsets the phase to :code:`phase` radians relative to a reference clock. If True, :code:`phase` must not be None. Defaults to False.
     """
 
-    def __init__(self, duration: float, wait_for_trigger: bool = False) -> None:
-        """
-        Args:
-            duration (float): The duration to wait in seconds.
-            wait_for_trigger (bool): Whether to wait for a trigger. Defaults to False.
-        """
-        super().__init__(duration, wait_for_trigger=wait_for_trigger)
+    if duration > 18e-3:  # close the shutter
+        return [Timestamp(6e-3, pd_setpoint, phase, frequency, pd_selection, False, True, additional_params, dds_amplitude, dds_wait_for_trigger, dds_digital_out, dds_absolute_phase),
+                Timestamp(duration-12e-3, clk_shutter=False, clk_aom=False),  # switch AOM back on
+                Timestamp(6e-3, clk_shutter=True, clk_aom=True)]  # switch AOM back off and open shutter again
+    else:  # keep shutter in previous state
+        return [Timestamp(duration, pd_setpoint, phase, frequency, pd_selection, None, True, additional_params, dds_amplitude, dds_wait_for_trigger, dds_digital_out, dds_absolute_phase)]
 
 
 class SyncPoint(RFBlock):
@@ -397,48 +419,48 @@ class SyncPoint(RFBlock):
         return super().compile(state)
 
 
-class AdjustPrevDuration(RFBlock):
-    """
-    Adjusts the duration of the previous :class:`Timestamp`. Throws an error on compilation if the previous :class:`RFBlock` is not a :class:`Timestamp` or the adjustment would result in negative duration.
-    """
-
-    atomic = True
-
-    def __init__(self, duration: float) -> None:
-        """
-        Args:
-            duration (float): The duration in seconds by which to increment the duration of the previous timestamp.
-        """
-        self.duration = duration
-
-    def __repr__(self) -> str:
-        return "AdjustPrevDuration({})".format(self.duration)
-
-    def compile(self, state: SequenceState) -> AdjustPrevDuration:
-        state.time += self.duration
-        return super().compile(state)
-
-
-class AdjustNextDuration(RFBlock):
-    """
-    Adjusts the duration of the next :class:`Timestamp`. Throws an error on compilation if the next :class:`RFBlock` is not a :class:`Timestamp` or the adjustment would result in negative duration.
-    """
-
-    atomic = True
-
-    def __init__(self, duration: float) -> None:
-        """
-        Args:
-            duration (float): The duration in seconds by which to increment the duration of the next timestamp.
-        """
-        self.duration = duration
-
-    def __repr__(self) -> str:
-        return "AdjustNextDuration({})".format(self.duration)
-
-    def compile(self, state: SequenceState) -> AdjustNextDuration:
-        state.time += self.duration
-        return super().compile(state)
+#class AdjustPrevDuration(RFBlock):
+#    """
+#    Adjusts the duration of the previous :class:`Timestamp`. Throws an error on compilation if the previous :class:`RFBlock` is not a :class:`Timestamp` or the adjustment would result in negative duration.
+#    """
+#
+#    atomic = True
+#
+#    def __init__(self, duration: float) -> None:
+#        """
+#        Args:
+#            duration (float): The duration in seconds by which to increment the duration of the previous timestamp.
+#        """
+#        self.duration = duration
+#
+#    def __repr__(self) -> str:
+#        return "AdjustPrevDuration({})".format(self.duration)
+#
+#    def compile(self, state: SequenceState) -> AdjustPrevDuration:
+#        state.time += self.duration
+#        return super().compile(state)
+#
+#
+#class AdjustNextDuration(RFBlock):
+#    """
+#    Adjusts the duration of the next :class:`Timestamp`. Throws an error on compilation if the next :class:`RFBlock` is not a :class:`Timestamp` or the adjustment would result in negative duration.
+#    """
+#
+#    atomic = True
+#
+#    def __init__(self, duration: float) -> None:
+#        """
+#        Args:
+#            duration (float): The duration in seconds by which to increment the duration of the next timestamp.
+#        """
+#        self.duration = duration
+#
+#    def __repr__(self) -> str:
+#        return "AdjustNextDuration({})".format(self.duration)
+#
+#    def compile(self, state: SequenceState) -> AdjustNextDuration:
+#        state.time += self.duration
+#        return super().compile(state)
 
 
 class RectangularPulse(RFPulse):
@@ -449,40 +471,61 @@ class RectangularPulse(RFPulse):
     def __init__(
         self,
         duration: float,
-        amplitude: float,
+        pd_setpoint: float,
         phase: Optional[float] = None,
         frequency: Optional[float] = None,
-        centered: bool = False,
+        pd_selection: Optional[bool] = None,
+        clk_shutter: Optional[bool] = True,
+        clk_aom: Optional[bool] = False,
+        additional_params: Optional[dict] = None,
+        dds_amplitude: Optional[float] = None,
+        #centered: bool = False,
     ) -> None:
         """
         Refer to :func:`Pulse` for descriptions of the arguments.
         """
         self.duration = duration
-        self.amplitude = amplitude
+        self.pd_setpoint = pd_setpoint
         self.phase = phase
         self.frequency = frequency
-        self.centered = centered
+        self.pd_selection = pd_selection
+        self.clk_shutter = clk_shutter
+        self.clk_aom = clk_aom
+        self.additional_params = additional_params
+        self.dds_amplitude = dds_amplitude
+        #self.centered = centered
 
     @property
     def area(self) -> float:
         return 1
 
     def compile(self, state: Optional[SequenceState] = None) -> List[RFBlock]:
-        validate_parameters(self.duration, self.amplitude, self.phase, self.frequency)
+        validate_parameters(self.duration, self.pd_setpoint, self.phase, self.frequency, self.additional_params, self.dds_amplitude)
         sequence = [
-            Timestamp(self.duration, self.amplitude, self.phase, self.frequency),
-            Timestamp(0, 0),
+            Timestamp(self.duration, self.pd_setpoint, self.phase, self.frequency, self.pd_selection, self.clk_shutter, self.clk_aom, self.additional_params, self.dds_amplitude),
+            #Timestamp(0, 0),
         ]
-        return RFPulse.center(self.centered, sequence, self.duration)
+        #return RFPulse.center(self.centered, sequence, self.duration)
+        return RFPulse.center(False, sequence, self.duration)
 
     def __repr__(self) -> str:
-        val = "RectangularPulse({}, {}".format(self.duration, self.amplitude)
+        val = "RectangularPulse({}, {}".format(self.duration, self.pd_setpoint)
         if self.phase is not None:
             val += ", phase={}".format(self.phase)
         if self.frequency is not None:
             val += ", frequency={}".format(self.frequency)
-        if self.centered:
-            val += ", centered=True"
+        if self.pd_selection is not None:
+            val += ", pd_selection={}".format(self.pd_selection)
+        if self.clk_shutter is not None:
+            val += ", clk_shutter={}".format(self.clk_shutter)
+        if self.clk_aom is not None:
+            val += ", clk_aom={}".format(self.clk_aom)
+        if self.additional_params is not None:
+            val += ", additional_params={}".format(self.additional_params)
+        if self.dds_amplitude is not None:
+            val += ", dds_amplitude={}".format(self.dds_amplitude)
+        #if self.centered:
+        #    val += ", centered=True"
         return val + ")"
 
 
@@ -494,10 +537,15 @@ class BlackmanPulse(RFPulse):
     def __init__(
         self,
         duration: float,
-        amplitude: float,
+        pd_setpoint: float,
         phase: Optional[float] = None,
         frequency: Optional[float] = None,
-        centered: Optional[float] = False,
+        pd_selection: Optional[bool] = None,
+        clk_shutter: Optional[bool] = True,
+        clk_aom: Optional[bool] = False,
+        additional_params: Optional[dict] = None,
+        dds_amplitude: Optional[float] = None,
+        #centered: bool = False,
         steps: int = 20,
         exact: bool = False,
     ) -> None:
@@ -509,21 +557,36 @@ class BlackmanPulse(RFPulse):
             exact (bool, optional): Whether to use exact parameters for the window, as described `on Wikipedia <https://en.wikipedia.org/wiki/List_of_window_functions#Blackman_window>`_. Defaults to False.
         """
         self.duration = duration
-        self.amplitude = amplitude
+        self.pd_setpoint = pd_setpoint
         self.phase = phase
         self.frequency = frequency
-        self.centered = centered
+        self.pd_selection = pd_selection
+        self.clk_shutter = clk_shutter
+        self.clk_aom = clk_aom
+        self.additional_params = additional_params
+        self.dds_amplitude = dds_amplitude
+        #self.centered = centered
         self.steps = steps
         self.exact = exact
 
     def __repr__(self) -> str:
-        val = "BlackmanPulse({}, {}".format(self.duration, self.amplitude)
+        val = "BlackmanPulse({}, {}".format(self.duration, self.pd_setpoint)
         if self.phase is not None:
             val += ", phase={}".format(self.phase)
         if self.frequency is not None:
             val += ", frequency={}".format(self.frequency)
-        if self.centered:
-            val += ", centered=True"
+        if self.pd_selection is not None:
+            val += ", pd_selection={}".format(self.pd_selection)
+        if self.clk_shutter is not None:
+            val += ", clk_shutter={}".format(self.clk_shutter)
+        if self.clk_aom is not None:
+            val += ", clk_aom={}".format(self.clk_aom)
+        if self.additional_params is not None:
+            val += ", additional_params={}".format(self.additional_params)
+        if self.dds_amplitude is not None:
+            val += ", dds_amplitude={}".format(self.dds_amplitude)
+        #if self.centered:
+        #    val += ", centered=True"
         if self.steps is not None:
             val += ", steps={}".format(self.steps)
         return val + ", exact={})".format(self.exact)
@@ -532,10 +595,10 @@ class BlackmanPulse(RFPulse):
     def area(self) -> float:
         self.compile()
         step = self.duration / self.steps
-        return step * sum(self.amplitudes) / (self.amplitude * self.duration)
+        return step * sum(self.pd_setpoint) / (self.pd_setpoint * self.duration)
 
     def compile(self, state: Optional[SequenceState] = None) -> List[RFBlock]:
-        validate_parameters(self.duration, self.amplitude, self.phase, self.frequency)
+        validate_parameters(self.duration, self.pd_setpoint, self.phase, self.frequency, self.additional_params, self.dds_amplitude)
         if self.steps < 7 or int(self.steps) != self.steps:
             raise ValueError(
                 "Steps (currently {}) must be an integer >= 7.".format(self.steps)
@@ -547,15 +610,19 @@ class BlackmanPulse(RFPulse):
         step = self.duration / self.steps
         N = self.steps - 1
         n = np.linspace(0, N, self.steps, endpoint=True)
-        self.amplitudes = self.amplitude * (
+        self.pd_setpoints = self.pd_setpoint * (
             a[0] - a[1] * np.cos(2 * np.pi * n / N) + a[2] * np.cos(4 * np.pi * n / N)
         )
-        timestamps = [Timestamp(step, min(1, max(amp, 0))) for amp in self.amplitudes]
+        timestamps = [Timestamp(step, min(self.pd_setpoint, max(setp, 0))) for setp in self.pd_setpoints]
         timestamps[0].phase = self.phase
         timestamps[0].frequency = self.frequency
-        return RFPulse.center(
-            self.centered, timestamps + [Timestamp(0, 0)], self.duration
-        )
+        timestamps[0].pd_selection = self.pd_selection
+        timestamps[0].clk_shutter = self.clk_shutter
+        timestamps[0].clk_aom = self.clk_aom
+        timestamps[0].additional_params = self.additional_params
+        timestamps[0].dds_amplitude = self.dds_amplitude
+        #return RFPulse.center(self.centered, timestamps + [Timestamp(0, 0)], self.duration)
+        return RFPulse.center(False, timestamps + [Timestamp(0, 0)], self.duration)
 
 
 class GaussianPulse(RFPulse):
@@ -566,10 +633,15 @@ class GaussianPulse(RFPulse):
     def __init__(
         self,
         duration: float,
-        amplitude: float,
+        pd_setpoint: float,
         phase: Optional[float] = None,
         frequency: Optional[float] = None,
-        centered: bool = False,
+        pd_selection: Optional[bool] = None,
+        clk_shutter: Optional[bool] = True,
+        clk_aom: Optional[bool] = False,
+        additional_params: Optional[dict] = None,
+        dds_amplitude: Optional[float] = None,
+        #centered: bool = False,
         steps: int = 26,
         sigt: float = 0.11,
     ) -> None:
@@ -581,10 +653,15 @@ class GaussianPulse(RFPulse):
             sigt (float, optional): The RMS time width of the pulse relative to duration. Approximates a cosine window for :math:`\\sigma_{t} \\approx 0.18` and approaches the time-frequency uncertainty limit for :math:`\\sigma_{t} \\leq 0.13`. Throws an error if not between 0.08 and 0.20. Defaults to 0.11.
         """
         self.duration = duration
-        self.amplitude = amplitude
+        self.pd_setpoint = pd_setpoint
         self.phase = phase
         self.frequency = frequency
-        self.centered = centered
+        self.pd_selection = pd_selection
+        self.clk_shutter = clk_shutter
+        self.clk_aom = clk_aom
+        self.additional_params = additional_params
+        self.dds_amplitude = dds_amplitude
+        #self.centered = centered
         self.sigt = sigt
         self.steps = steps
 
@@ -592,10 +669,10 @@ class GaussianPulse(RFPulse):
     def area(self) -> float:
         self.compile()
         step = self.duration / self.steps
-        return step * sum(self.amplitudes) / (self.amplitude * self.duration)
+        return step * sum(self.pd_setpoint) / (self.pd_setpoint * self.duration)
 
     def compile(self, state: Optional[SequenceState] = None) -> List[RFBlock]:
-        validate_parameters(self.duration, self.amplitude, self.phase, self.frequency)
+        validate_parameters(self.duration, self.pd_setpoint, self.phase, self.frequency, self.additional_params, self.dds_amplitude)
         if self.sigt < 0.08 or self.sigt > 0.2:
             raise ValueError(
                 "sigt (currently {}) must be between 0.08 and 0.20.".format(self.sigt)
@@ -613,24 +690,38 @@ class GaussianPulse(RFPulse):
         def G(x):
             return np.exp(-(((x - N / 2.0) / (2 * L * self.sigt)) ** 2))
 
-        self.amplitudes = self.amplitude * (
+        self.pd_setpoints = self.pd_setpoint * (
             G(n) - (G(-0.5) * (G(n + L) + G(n - L))) / (G(L - 0.5) + G(-L - 0.5))
         )
-        timestamps = [Timestamp(step, min(1, max(amp, 0))) for amp in self.amplitudes]
+        timestamps = [Timestamp(step, min(self.pd_setpoint, max(setp, 0))) for setp in self.pd_setpoints]
         timestamps[0].phase = self.phase
         timestamps[0].frequency = self.frequency
-        return RFPulse.center(
-            self.centered, timestamps + [Timestamp(0, 0)], self.duration
-        )
+        timestamps[0].pd_selection = self.pd_selection
+        timestamps[0].clk_shutter = self.clk_shutter
+        timestamps[0].clk_aom = self.clk_aom
+        timestamps[0].additional_params = self.additional_params
+        timestamps[0].dds_amplitude = self.dds_amplitude
+        #return RFPulse.center(self.centered, timestamps + [Timestamp(0, 0)], self.duration)
+        return RFPulse.center(False, timestamps + [Timestamp(0, 0)], self.duration)
 
     def __repr__(self) -> str:
-        val = "GaussianPulse({}, {}".format(self.duration, self.amplitude)
+        val = "GaussianPulse({}, {}".format(self.duration, self.pd_setpoint)
         if self.phase is not None:
             val += ", phase={}".format(self.phase)
         if self.frequency is not None:
             val += ", frequency={}".format(self.frequency)
-        if self.centered:
-            val += ", centered=True"
+        if self.pd_selection is not None:
+            val += ", pd_selection={}".format(self.pd_selection)
+        if self.clk_shutter is not None:
+            val += ", clk_shutter={}".format(self.clk_shutter)
+        if self.clk_aom is not None:
+            val += ", clk_aom={}".format(self.clk_aom)
+        if self.additional_params is not None:
+            val += ", additional_params={}".format(self.additional_params)
+        if self.dds_amplitude is not None:
+            val += ", dds_amplitude={}".format(self.dds_amplitude)
+        #if self.centered:
+        #    val += ", centered=True"
         if self.steps is not None:
             val += ", steps={}".format(self.steps)
         if self.sigt is not None:
@@ -646,33 +737,55 @@ class FrequencyRamp(RFBlock):
     def __init__(
         self,
         duration: float,
-        amplitude: Optional[float] = None,
+        pd_setpoint: Optional[float] = None,
         phase: Optional[float] = None,
         start_frequency: Optional[float] = None,
         end_frequency: Optional[float] = None,
+        pd_selection: Optional[bool] = None,
+        clk_shutter: Optional[bool] = True,
+        clk_aom: Optional[bool] = False,
+        additional_params: Optional[dict] = None,
+        dds_amplitude: Optional[float] = None,
         steps: int = 20,
     ):
         """
         Args:
             duration (float): The duration of the ramp in seconds.
-            amplitude (float, optional): The amplitude of the tone relative to full scale. Defaults to None.
+            pd_setpoint (float, optional): Clock PD setpoint (the value corresponds to the PD before the atoms and may be converted to the one after the atoms, depending on the value of selected_pd)
             phase (float, optional): The phase of the tone in radians. Defaults to None, in which case the previous phase setting is maintained.
             start_frequency (float, optional): The initial frequency in Hertz. Defaults to None, in which case the previous frequency setting is used.
             end_frequency (float, optional): The final frequency in Hertz. Defaults to None, in which case :code:`start_frequency` is used.
-            steps (int, optional): The number of frequency steps to include in the ramp. Defaults to 20.
+            pd_selection (bool, optional): Use PD before/after the chamber as input for the intensity servo
+            clk_shutter (bool, optional): Position of the clock laser shutter. Dafaults to True.
+            clk_aom (bool, optional): Clock AOM disable / intensity servo integrator hold. Defaults to False.
+            additional_params (dict, optional): Additional Sequencer channels ({"<ch_name>": <value>}, with <ch_name> being the same as the onces referenced in :class:'SequencerMapping)
+            dds_amplitude (float, optional): The amplitude of the DDS tone relative to full scale. Defaults to None, in which case the previous ammplitude setting is maintained.
+            steps (int, optional): The number of frequency steps to include in the ramp. Must be at least 2. Defaults to 20.
         """
-        self.duration = duration
-        self.amplitude = amplitude
-        self.phase = phase
-        self.start_frequency = start_frequency
-        self.end_frequency = end_frequency
+        self.duration = set_float(duration)
+        self.pd_setpoint = set_float(pd_setpoint)
+        self.phase = set_float(phase)
+        self.start_frequency = set_float(start_frequency)
+        self.end_frequency = set_float(end_frequency)
+        self.pd_selection = pd_selection
+        self.clk_shutter = clk_shutter
+        self.clk_aom = clk_aom
+        self.additional_params = additional_params
+        self.dds_amplitude = set_float(dds_amplitude)
         self.steps = steps
 
     def compile(self, state: SequenceState) -> List[RFBlock]:
         validate_parameters(
-            self.duration, self.amplitude, self.phase, self.start_frequency
+            self.duration,
+            self.pd_setpoint,
+            self.phase,
+            self.start_frequency,
+            self.additional_params,
+            self.dds_amplitude,
         )
         validate_parameters(frequency=self.end_frequency)
+        if self.steps < 2 or self.steps != int(self.steps):
+            raise ValueError("The number of steps, {}, must be an integer >= 2")
         if self.steps < 2 or self.steps != int(self.steps):
             raise ValueError("The number of steps, {}, must be an integer >= 2")
         if self.start_frequency is None:
@@ -682,20 +795,35 @@ class FrequencyRamp(RFBlock):
         step = self.duration / self.steps
         freqs = np.linspace(self.start_frequency, self.end_frequency, self.steps)
         timestamps = [Timestamp(step, frequency=freq) for freq in freqs]
+        timestamps[0].pd_setpoint = self.pd_setpoint
         timestamps[0].phase = self.phase
-        timestamps[0].amplitude = self.amplitude
+        timestamps[0].pd_selection = self.pd_selection
+        timestamps[0].clk_shutter = self.clk_shutter
+        timestamps[0].clk_aom = self.clk_aom
+        timestamps[0].additional_params = self.additional_params
+        timestamps[0].dds_amplitude = self.dds_amplitude
         return timestamps
 
     def __repr__(self) -> str:
         val = "FrequencyRamp({}".format(self.duration)
-        if self.amplitude is not None:
-            val += ", amplitude={}".format(self.amplitude)
+        if self.pd_setpoint is not None:
+            val += ", pd_setpoint={}".format(self.pd_setpoint)
         if self.phase is not None:
             val += ", phase={}".format(self.phase)
         if self.start_frequency is not None:
             val += ", start_frequency={}".format(self.start_frequency)
         if self.end_frequency is not None:
             val += ", end_frequency={}".format(self.end_frequency)
+        if self.pd_selection is not None:
+            val += ", pd_selection={}".format(self.pd_selection)
+        if self.clk_shutter is not None:
+            val += ", clk_shutter={}".format(self.clk_shutter)
+        if self.clk_aom is not None:
+            val += ", clk_aom={}".format(self.clk_shutter)
+        if self.additional_params is not None:
+            val += ", additional_params={}".format(self.additional_params)
+        if self.dds_amplitude is not None:
+            val += ", dds_amplitude={}".format(self.dds_amplitude)
         val += ", steps={})".format(self.steps)
         return val
 
@@ -708,56 +836,91 @@ class AmplitudeRamp(RFBlock):
     def __init__(
         self,
         duration: float,
-        start_amplitude: Optional[float] = None,
-        end_amplitude: Optional[float] = None,
+        start_pd_setpoint: Optional[float] = None,
+        end_pd_setpoint: Optional[float] = None,
         phase: Optional[float] = None,
         frequency: Optional[float] = None,
+        pd_selection: Optional[bool] = None,
+        clk_shutter: Optional[bool] = True,
+        clk_aom: Optional[bool] = False,
+        additional_params: Optional[dict] = None,
+        dds_amplitude: Optional[float] = None,
         steps: int = 20,
     ):
         """
         Args:
             duration (float): The duration of the ramp in seconds.
-            start_amplitude (float, optional): The initial amplitude, relative to full scale. Defaults to None, in which case the amplitude of the previous :class:`RFBlock` is used.
-            end_amplitude (float, optional): The final amplitude, relative to full scale. Defaults to None, in which case :code:`start_amplitude` is used.
+            start_pd_setpoint (float, optional): Initial clock PD setpoint (the value corresponds to the PD before the atoms and may be converted to the one after the atoms, depending on the value of selected_pd). Defaults to None, in which case the pd_setpoint of the previous :class:`RFBlock` is used.
+            end_pd_setpoint (float, optional): Final clock PD setpoint (the value corresponds to the PD before the atoms and may be converted to the one after the atoms, depending on the value of selected_pd). Defaults to None, in which case :code:`start_pd_setpoint` is used.
             phase (float, optional): The phase of the tone in radians. Defaults to None, in which case the previous phase setting is maintained.
             frequency (float, optional): The frequency of the tone in Hertz. Defaults to None, in which case the previous frequency setting is maintained.
+            pd_selection (bool, optional): Use PD before/after the chamber as input for the intensity servo
+            clk_shutter (bool, optional): Position of the clock laser shutter. Dafaults to True.
+            clk_aom (bool, optional): Clock AOM disable / intensity servo integrator hold. Defaults to False.
+            additional_params (dict, optional): Additional Sequencer channels ({"<ch_name>": <value>}, with <ch_name> being the same as the onces referenced in :class:'SequencerMapping)
+            dds_amplitude (float, optional): The amplitude of the DDS tone relative to full scale. Defaults to None, in which case the previous ammplitude setting is maintained.
             steps (int, optional): The number of amplitude steps to include in the ramp. Must be at least 2. Defaults to 20.
         """
-        self.duration = duration
-        self.start_amplitude = start_amplitude
-        self.end_amplitude = end_amplitude
-        self.phase = phase
-        self.frequency = frequency
+        self.duration = set_float(duration)
+        self.start_pd_setpoint = set_float(start_pd_setpoint)
+        self.end_pd_setpoint = set_float(end_pd_setpoint)
+        self.phase = set_float(phase)
+        self.frequency = set_float(frequency)
+        self.pd_selection = pd_selection
+        self.clk_shutter = clk_shutter
+        self.clk_aom = clk_aom
+        self.additional_params = additional_params
+        self.dds_amplitude = set_float(dds_amplitude)
         self.steps = steps
 
     def compile(self, state: SequenceState) -> List[RFBlock]:
         validate_parameters(
-            self.duration, self.start_amplitude, self.phase, self.frequency
+            self.duration,
+            self.start_pd_setpoint,
+            self.phase,
+            self.frequency,
+            self.additional_params,
+            self.dds_amplitude,
         )
-        validate_parameters(amplitude=self.end_amplitude)
+        validate_parameters(pd_setpoint=self.end_pd_setpoint)
         if self.steps < 2 or self.steps != int(self.steps):
             raise ValueError("The number of steps, {}, must be an integer >= 2")
-        if self.start_amplitude is None:
-            self.start_amplitude = state.amplitude
-        if self.end_amplitude is None:
-            self.end_amplitude = self.start_amplitude
+        if self.start_pd_setpoint is None:
+            self.start_pd_setpoint = state.pd_setpoint
+        if self.end_pd_setpoint is None:
+            self.end_pd_setpoint = self.start_pd_setpoint
         step = self.duration / self.steps
-        amps = np.linspace(self.start_amplitude, self.end_amplitude, self.steps)
-        timestamps = [Timestamp(step, amplitude=amp) for amp in amps]
+        setpts = np.linspace(self.start_pd_setpoint, self.end_pd_setpoint, self.steps)
+        timestamps = [Timestamp(step, pd_setpoint=setp) for setp in setpts]
         timestamps[0].phase = self.phase
         timestamps[0].frequency = self.frequency
+        timestamps[0].pd_selection = self.pd_selection
+        timestamps[0].clk_shutter = self.clk_shutter
+        timestamps[0].clk_aom = self.clk_aom
+        timestamps[0].additional_params = self.additional_params
+        timestamps[0].dds_amplitude = self.dds_amplitude
         return timestamps
 
     def __repr__(self) -> str:
         val = "AmplitudeRamp({}".format(self.duration)
-        if self.start_amplitude is not None:
-            val += ", start_amplitude={}".format(self.start_amplitude)
-        if self.end_amplitude is not None:
-            val += ", end_amplitude={}".format(self.end_amplitude)
+        if self.start_pd_setpoint is not None:
+            val += ", start_pd_setpoint={}".format(self.start_pd_setpoint)
+        if self.end_pd_setpoint is not None:
+            val += ", end_pd_setpoint={}".format(self.end_pd_setpoint)
         if self.phase is not None:
             val += ", phase={}".format(self.phase)
         if self.frequency is not None:
             val += ", frequency={}".format(self.frequency)
+        if self.pd_selection is not None:
+            val += ", pd_selection={}".format(self.pd_selection)
+        if self.clk_shutter is not None:
+            val += ", clk_shutter={}".format(self.clk_shutter)
+        if self.clk_aom is not None:
+            val += ", clk_aom={}".format(self.clk_shutter)
+        if self.additional_params is not None:
+            val += ", additional_params={}".format(self.additional_params)
+        if self.dds_amplitude is not None:
+            val += ", dds_amplitude={}".format(self.dds_amplitude)
         val += ", steps={})".format(self.steps)
         return val
 
@@ -770,13 +933,13 @@ class PhaseRamp(RFBlock):
     def __init__(
         self,
         duration: float,
+        pd_setpoint: Optional[float] = None,
         start_phase: Optional[float] = None,
         end_phase: Optional[float] = None,
         frequency: Optional[float] = None,
-        pd_setpoint: Optional[float] = None,
         pd_selection: Optional[bool] = None,
-        clk_shutter: Optional[bool] = None,
-        clk_aom: Optional[bool] = None,
+        clk_shutter: Optional[bool] = True,
+        clk_aom: Optional[bool] = False,
         additional_params: Optional[dict] = None,
         dds_amplitude: Optional[float] = None,
         steps: int = 20,
@@ -784,22 +947,22 @@ class PhaseRamp(RFBlock):
         """
         Args:
             duration (float): The duration of the ramp in seconds.
+            pd_setpoint (float, optional): Clock PD setpoint (the value corresponds to the PD before the atoms and may be converted to the one after the atoms, depending on the value of selected_pd)
             start_phase (float, optional): The initial phase in radians. Defaults to None, in which case the phase of the previous :class:`RFBlock` is used.
             end_phase (float, optional): The final phase in radians. Defaults to None, in which case :code:`start_phase` is used.
             frequency (float, optional): The frequency of the tone in Hertz. Defaults to None, in which case the previous frequency setting is maintained.
-            pd_setpoint (float, optional): Clock PD setpoint (the value corresponds to the PD before the atoms and may be converted to the one after the atoms, depending on the value of selected_pd)
             pd_selection (bool, optional): Use PD before/after the chamber as input for the intensity servo
-            clk_shutter (bool, optional): Position of the clock laser shutter
-            clk_aom (bool, optional): Clock AOM disable / intensity servo integrator hold
+            clk_shutter (bool, optional): Position of the clock laser shutter. Dafaults to True.
+            clk_aom (bool, optional): Clock AOM disable / intensity servo integrator hold. Defaults to False.
             additional_params (dict, optional): Additional Sequencer channels ({"<ch_name>": <value>}, with <ch_name> being the same as the onces referenced in :class:'SequencerMapping)
             dds_amplitude (float, optional): The amplitude of the DDS tone relative to full scale. Defaults to None, in which case the previous ammplitude setting is maintained.
-            steps (int, optional): The number of amplitude steps to include in the ramp. Must be at least 2. Defaults to 20.
+            steps (int, optional): The number of phase steps to include in the ramp. Must be at least 2. Defaults to 20.
         """
         self.duration = set_float(duration)
+        self.pd_setpoint = set_float(pd_setpoint)
         self.start_phase = set_float(start_phase)
         self.end_phase = set_float(end_phase)
         self.frequency = set_float(frequency)
-        self.pd_setpoint = set_float(pd_setpoint)
         self.pd_selection = pd_selection
         self.clk_shutter = clk_shutter
         self.clk_aom = clk_aom
@@ -810,9 +973,9 @@ class PhaseRamp(RFBlock):
     def compile(self, state: SequenceState) -> List[RFBlock]:
         validate_parameters(
             self.duration,
+            self.pd_setpoint,
             self.start_phase,
             self.frequency,
-            self.pd_setpoint,
             self.additional_params,
             self.dds_amplitude,
         )
@@ -826,8 +989,8 @@ class PhaseRamp(RFBlock):
         step = self.duration / self.steps
         phis = np.linspace(self.start_phase, self.end_phase, self.steps)
         timestamps = [Timestamp(step, phase=phi) for phi in phis]
-        timestamps[0].frequency = self.frequency
         timestamps[0].pd_setpoint = self.pd_setpoint
+        timestamps[0].frequency = self.frequency
         timestamps[0].pd_selection = self.pd_selection
         timestamps[0].clk_shutter = self.clk_shutter
         timestamps[0].clk_aom = self.clk_aom
@@ -837,14 +1000,14 @@ class PhaseRamp(RFBlock):
 
     def __repr__(self) -> str:
         val = "PhaseRamp({}".format(self.duration)
+        if self.pd_setpoint is not None:
+            val += ", pd_setpoint={}".format(self.pd_setpoint)
         if self.start_phase is not None:
             val += ", start_phase={}".format(self.start_phase)
         if self.end_phase is not None:
             val += ", end_phase={}".format(self.end_phase)
         if self.frequency is not None:
             val += ", frequency={}".format(self.frequency)
-        if self.pd_setpoint is not None:
-            val += ", pd_setpoint={}".format(self.pd_setpoint)
         if self.pd_selection is not None:
             val += ", pd_selection={}".format(self.pd_selection)
         if self.clk_shutter is not None:
@@ -866,115 +1029,104 @@ class Transition:
 
     def __init__(
         self,
+        pd_setpoints,
         frequency: float,
-        amplitudes,
         Rabi_frequencies=None,
-        default_amplitude: Optional[float] = None,
-        frequency_offset: float = 0,
+        dds_amplitudes=None,
+        #default_dds_amplitude: Optional[float] = None,
     ) -> None:
         """
         Args:
+            pd_setpoints(dict or list of float): A list of PD setpoints for which the Rabi frequencies are calibrated. Linearly interpolates and extrapolates relative to specified amplitudes. Can also take a dictionary with amplitude keys and Rabi frequency values, in which case Rabi_frequencies is ignored.
             frequency (float): The frequency of the transition in Hertz.
-            amplitudes (dict or list of float): A list of amplitudes (relative to full scale) for which the Rabi frequencies are calibrated. Linearly interpolates and extrapolates relative to specified amplitudes. Can also take a dictionary with amplitude keys and Rabi frequency values, in which case Rabi_frequencies is ignored.
-            Rabi_frequencies (list of float, optional): A list of Rabi frequencies (in Hertz) corresponding to :code:`amplitudes`. Must be the same length as :code:`amplitudes` if lists are used. Defaults to None.
-            default_amplitude (float, optional): The default amplitude for pulses on the transition. Defaults to None, in which case the first element of amplitudes is used.
-            frequency_offset (float, optional): The frequency (in Hertz) of the tone that is mixed with the synthesizer output. The actual output frequency of the synthesizer is :code:`frequency - frequency_offset`. Defaults to 0.
+            Rabi_frequencies (list of float, optional): A list of Rabi frequencies (in Hertz) corresponding to :code:`pd_setpoints`. Must be the same length as :code:`pd_setpoints` if lists are used. Defaults to None.
+            dds_amplitudes (dict or list of float, optional): A list of amplitudes (relative to full scale).
+            #default_dds_amplitude (float, optional): The default dds_amplitude for pulses on the transition. Defaults to None, in which case the first element of dds_amplitudes is used; if that is also None, default_dds_amplitude is set to 1.
         """
-        if isinstance(amplitudes, dict):
-            amplitudes_list = []
+        if not isinstance(pd_setpoints, list):  # assume a single value was passed
+            pd_setpoints = [pd_setpoints]  # make a list
+        if isinstance(pd_setpoints, dict):
+            pd_setpoints_list = []
             Rabi_frequencies = []
-            for k, v in amplitudes.items():
-                amplitudes_list.append(k)
+            for k, v in pd_setpoints.items():
+                pd_setpoints_list.append(k)
                 Rabi_frequencies.append(v)
-            amplitudes = amplitudes_list
-        if len(amplitudes) == 0 or len(Rabi_frequencies) != len(amplitudes):
+            pd_setpoints = pd_setpoints_list
+        if Rabi_frequencies is None:
+            raise ValueError("Rabi_frequencies is None, but if pd_setpoints is not a dict then Rabi_frequencies may not be None.")
+        if not isinstance(Rabi_frequencies, list):  # assume a single value was passed
+            Rabi_frequencies = [Rabi_frequencies]
+        if len(pd_setpoints) == 0 or len(Rabi_frequencies) != len(pd_setpoints):
             raise ValueError(
-                "amplitudes and Rabi_frequencies must be non-empty arrays of the same length."
+                "pd_setpoints and Rabi_frequencies must be non-empty arrays of the same length."
             )
-        for a in amplitudes:
-            if a <= 0 or a > 1:
+        for a in pd_setpoints:
+            if a < -10. or a > 10.:
                 raise ValueError(
-                    "All amplitudes must be > 0 and <= 1; {} isn't.".format(a)
+                    "All pd_setpoints must be >= -10 and <= 10; {} isn't.".format(a)
                 )
         for f in Rabi_frequencies:
             if f <= 0:
                 raise ValueError(
                     "All Rabi frequencies must be positive; {} isn't.".format(f)
                 )
-        if default_amplitude is not None and (
-            default_amplitude <= 0 or default_amplitude > 1
-        ):
-            raise ValueError(
-                "Default amplitude {} must be > 0 and <= 1".format(default_amplitude)
-            )
-        if (
-            np.abs(frequency - frequency_offset) < 0
-            or np.abs(frequency - frequency_offset) > dds_settings.F_MAX
-        ):
-            raise ValueError(
-                "The output frequency (frequency {} - frequency_offset {}) must be between 0 and {} but is {}".format(
-                    frequency,
-                    frequency_offset,
-                    dds_settings.F_MAX,
-                    np.abs(frequency - frequency_offset),
-                )
-            )
+        #if default_amplitude is not None and (
+        #    default_amplitude <= 0 or default_amplitude > 1
+        #):
+        #    raise ValueError(
+        #        "Default amplitude {} must be > 0 and <= 1".format(default_amplitude)
+        #    )
+        self.pd_setpoints = pd_setpoints
         self.frequency = frequency
-        self.amplitudes = amplitudes
         self.Rabi_frequencies = Rabi_frequencies
-        if default_amplitude is None:
-            default_amplitude = amplitudes[0]
-        self.default_amplitude = default_amplitude
+        self.dds_amplitudes = dds_amplitudes
+        #if default_amplitude is None:
+        #    default_amplitude = amplitudes[0]
+        #self.default_amplitude = default_amplitude
 
-        self.frequency_offset = frequency_offset
-        if len(self.amplitudes) > 1:
-            itp = interp1d(
-                self.amplitudes,
-                self.Rabi_frequencies,
-                copy=False,
-                fill_value="extrapolate",
-            )
-            self.default_Rabi_frequency = itp(self.default_amplitude)
-        else:
-            self.default_Rabi_frequency = Rabi_frequencies[0]
+        #if len(self.amplitudes) > 1:
+        #    itp = interp1d(
+        #        self.amplitudes,
+        #        self.Rabi_frequencies,
+        #        copy=False,
+        #        fill_value="extrapolate",
+        #    )
+        #    self.default_Rabi_frequency = itp(self.default_amplitude)
+        #else:
+        #    self.default_Rabi_frequency = Rabi_frequencies[0]
 
     def __repr__(self) -> str:
-        return (
-            "Transition({}, {}, {}, default_amplitude={}, frequency_offset={})".format(
-                self.frequency,
-                self.amplitudes,
-                self.Rabi_frequencies,
-                self.default_amplitude,
-                self.frequency_offset,
-            )
-        )
+        val = "Transition({}, {}, {}".format(self.frequency, self.pd_setpoints, self.Rabi_frequencies)
+        if self.dds_amplitudes is not None:
+            val += ", dds_amplitudes={}".format(self.dds_amplitudes)
+        return val
 
-    def Rabi_frequency(self, amplitude: Optional[float] = None) -> float:
+    def Rabi_frequency(self, pd_setpoint: Optional[float] = None) -> float:
         """
-        Rabi_frequency(self, amplitude=None)
+        Rabi_frequency(self, pd_setpoint=None)
 
-        Computes the Rabi frequency corresponding to :code:`amplitude` using interpolation or extrapolation from the values provided by :code:`amplitudes` and :code:`Rabi_frequencies`.
+        Computes the Rabi frequency corresponding to :code:`pd_setpoint` using interpolation or extrapolation from the values provided by :code:`pd_setpoints` and :code:`Rabi_frequencies`.
 
         Args:
-            amplitude (float, optional): The amplitude for which to compute the Rabi frequency. Defaults to None, in which case :code:`default_amplitude` is used.
+            pd_setpoint (float, optional): The PD Setpoint for which to compute the Rabi frequency. Defaults to None, in which case the first element of :code:`pd_setpoints` is used.
 
         Returns:
-            float: The Rabi frequency, in Hertz, associated with :code:`amplitude`.
+            float: The Rabi frequency, in Hertz, associated with :code:`pd_setpoint`.
         """
-        if amplitude is None:
-            amplitude = self.default_amplitude
-        if amplitude <= 0 or amplitude > 1:
-            raise ValueError("Amplitude {} must be > 0 and <= 1".format(amplitude))
-        if len(self.amplitudes) > 1:
+        if pd_setpoint is None:
+            pd_setpoint = self.pd_setpoints[0]
+        if pd_setpoint < -10. or pd_setpoint > 10.:
+            raise ValueError("pd_setpoint {} must be > 0 and <= 1".format(pd_setpoint))
+        if len(self.pd_setpoints) > 1:
             itp = interp1d(
-                self.amplitudes,
+                self.pd_setpoints,
                 self.Rabi_frequencies,
                 copy=False,
                 fill_value="extrapolate",
             )
-            return itp(amplitude)
+            return itp(pd_setpoint)
         else:
-            return self.default_Rabi_frequency
+            return self.Rabi_frequencies[0]
 
 
 class SetTransition(RFBlock):
@@ -996,48 +1148,21 @@ class SetTransition(RFBlock):
 
     def compile(self, state: SequenceState) -> RFBlock:
         state.transition = self.transition
-        state.frequency = np.abs(
-            self.transition.frequency - self.transition.frequency_offset
-        )
+        state.frequency = self.transition.frequency
         return super().compile(state)
-
-
-#def todB(amplitude_lin):
-#    """
-#    todB(amplitude_lin)
-#
-#    Converts an amplitude ratio from linear to decibels per :math:`A_{dB} = 20 \\log_{10}(A)`.
-#
-#    Args:
-#        amplitude_lin (float): An amplitude ratio.
-#
-#    Returns:
-#        float: The amplitude ratio in decibels.
-#    """
-#    return 20.0 * np.log10(amplitude_lin)
-
-
-#def fromdB(amplitude_dB):
-#    """
-#    fromdB(amplitude_dB)
-#
-#    Converts an amplitude ratio from decibels to linear per :math:`A = 10^{A_{dB}/20}`.
-#
-#    Args:
-#        amplitude_lin (float): An amplitude ratio in decibels.
-#
-#    Returns:
-#        float: The amplitude ratio.
-#    """
-#    return 10 ** (amplitude_dB / 20)
 
 
 def Pulse(
     duration: float,
-    amplitude: float,
+    pd_setpoint: float,
     phase: Optional[float] = None,
     frequency: Optional[float] = None,
-    centered: bool = False,
+    pd_selection: Optional[bool] = None,
+    clk_shutter: Optional[bool] = True,
+    clk_aom: Optional[bool] = False,
+    additional_params: Optional[dict] = None,
+    dds_amplitude: Optional[float] = None,
+    #centered: bool = False,
     window: type[RFPulse] = RectangularPulse,
     **kwargs,
 ) -> RFPulse:
@@ -1048,17 +1173,23 @@ def Pulse(
 
     Args:
         duration (float): The duration of the pulse in seconds.
-        amplitude (float): The peak amplitude of the pulse, relative to full scale.
+        pd_setpoint (float): The peak amplitude of the pulse; clock PD setpoint in volts (the value corresponds to the PD before the atoms and may be converted to the one after the atoms, depending on the value of selected_pd).
         phase (float, optional): The phase of the pulse in radians. Defaults to None, in which case the previous phase setting is maintained.
         frequency (float, optional): The frequency of the pulse in Hertz. Defaults to None, in which case the previous frequency setting is maintained.
-        centered (bool, optional): Whether to reduce the duration of the preceding and following :class:`Wait` commands :code:`duration/2`. Will throw an error during compilation if the :class:`Wait` commands are too short or the pulse is not adjacent to at least one :class:`Wait` command. If there is only one neighboring :class:`Wait` command, its duration is reduced by :code:`duration/2`. Defaults to False.
+        pd_selection (bool, optional): Use PD before/after the chamber as input for the intensity servo.
+        clk_shutter (bool, optional): Position of the clock laser shutter. Dafaults to True.
+        clk_aom (bool, optional): Clock AOM disable / intensity servo integrator hold. Defaults to False.
+        additional_params (dict, optional): Additional Sequencer channels ({"<ch_name>": <value>}, with <ch_name> being the same as the onces referenced in :class:'SequencerMapping).
+        dds_amplitude (float, optional): The DDS output amplitude, relative to full scale.
+        #centered (bool, optional): Whether to reduce the duration of the preceding and following :class:`Wait` commands :code:`duration/2`. Will throw an error during compilation if the :class:`Wait` commands are too short or the pulse is not adjacent to at least one :class:`Wait` command. If there is only one neighboring :class:`Wait` command, its duration is reduced by :code:`duration/2`. Defaults to False.
         window (RFPulse, optional): The shape of the pulse. Defaults to RectangularPulse.
         **kwargs: Additional keyword arguments, which are passed to :code:`window`'s :code:`__init__` method
 
     Returns:
         RFPulse: An :class:`RFPulse` with the specified parameters
     """
-    return window(duration, amplitude, phase, frequency, centered, **kwargs)
+    #return window(duration, pd_setpoint, phase, frequency, pd_selection, clk_shutter, clk_aom, additional_params, dds_amplitude, centered, **kwargs)
+    return window(duration, pd_setpoint, phase, frequency, pd_selection, clk_shutter, clk_aom, additional_params, dds_amplitude, **kwargs)
 
 
 class AreaPulse(RFPulse):
@@ -1069,27 +1200,43 @@ class AreaPulse(RFPulse):
     def __init__(
         self,
         pulse_area: float,
-        amplitude: Optional[float] = None,
+        pd_setpoint: Optional[float] = None,
         phase: Optional[float] = None,
         frequency: Optional[float] = None,
-        centered: bool = False,
+        pd_selection: Optional[bool] = None,
+        clk_shutter: Optional[bool] = True,
+        clk_aom: Optional[bool] = False,
+        additional_params: Optional[dict] = None,
+        dds_amplitude: Optional[float] = None,
+        #centered: bool = False,
         window: type[RFPulse] = RectangularPulse,
         **kwargs,
     ) -> None:
         """
         Args:
             pulse_area (float): The pulse area in radians.
-            amplitude (float, optional): The peak amplitude of the pulse, relative to full scale. Defaults to None, in which case the default amplitude for the specified :class:`Transition` is used.
+            pd_setpoint (float, optional): The peak amplitude of the pulse; clock PD setpoint in volts (the value corresponds to the PD before the atoms and may be converted to the one after the atoms, depending on the value of selected_pd). Defaults to None, in which case the default dp_setpoint for the specified :class:`Transition` is used.
             phase (float, optional): The phase of the pulse in radians. Defaults to None, in which case the previous phase setting is maintained.
-            centered (bool, optional): Whether to reduce the duration of the preceding and following :class:`Wait` commands :code:`duration/2`. Will throw an error during compilation if the :class:`Wait` commands are too short or the pulse is not adjacent to at least one :class:`Wait` command. If there is only one neighboring :class:`Wait` command, its duration is reduced by :code:`duration/2`. Defaults to False.
+            frequency (float, optional): The frequency of the pulse in Hertz. Defaults to None, in which case the previous frequency setting is maintained.
+            pd_selection (bool, optional): Use PD before/after the chamber as input for the intensity servo.
+            clk_shutter (bool, optional): Position of the clock laser shutter. Dafaults to True.
+            clk_aom (bool, optional): Clock AOM disable / intensity servo integrator hold. Defaults to False.
+            additional_params (dict, optional): Additional Sequencer channels ({"<ch_name>": <value>}, with <ch_name> being the same as the onces referenced in :class:'SequencerMapping).
+            dds_amplitude (float, optional): The DDS output amplitude, relative to full scale.
+            #centered (bool, optional): Whether to reduce the duration of the preceding and following :class:`Wait` commands :code:`duration/2`. Will throw an error during compilation if the :class:`Wait` commands are too short or the pulse is not adjacent to at least one :class:`Wait` command. If there is only one neighboring :class:`Wait` command, its duration is reduced by :code:`duration/2`. Defaults to False.
             window (RFPulse, optional): The shape of the pulse. Defaults to RectangularPulse.
             **kwargs: Additional keyword arguments, which are passed to window's :code:`__init__` method
         """
         self.pulse_area = pulse_area
-        self.amplitude = amplitude
+        self.pd_setpoint = pd_setpoint
         self.phase = phase
         self.frequency = frequency
-        self.centered = centered
+        self.pd_selection = pd_selection
+        self.clk_shutter = clk_shutter
+        self.clk_aom = clk_aom
+        self.additional_params = additional_params
+        self.dds_amplitude = dds_amplitude
+        #self.centered = centered
         self.window = window
         self.kwargs = kwargs
 
@@ -1097,33 +1244,46 @@ class AreaPulse(RFPulse):
         if issubclass(self.window, AreaPulse):
             return self.window(
                 self.pulse_area,
-                self.amplitude,
+                self.dp_setpoint,
                 self.phase,
-                self.centered,
+                self.frequency,
+                self.pd_selection,
+                self.clk_shutter,
+                self.clk_aom,
+                self.additional_params,
+                self.dds_amplitude,
+                #self.centered,
                 **self.kwargs,
             ).compile(state)
         transition = state.transition
         if self.frequency is None:
             self.frequency = transition.frequency
-        if self.amplitude is None:
-            self.amplitude = transition.default_amplitude
-        if self.amplitude <= 0 or self.amplitude > 1:
-            raise ValueError("Amplitude {} must be > 0 and <= 1".format(self.amplitude))
+        if self.pd_setpoint is None:
+            self.pd_setpoint = transition.pd_setpoints[0]
         if self.pulse_area < 0:
-            raise ValueError(
-                "Pulse area {} must be non-negative".format(self.pulse_area)
-            )
-        validate_parameters(phase=self.phase)
+            raise ValueError("Pulse area {} must be non-negative".format(self.pulse_area))
+        validate_parameters(
+            pd_setpoint=self.pd_setpoint,
+            phase=self.phase,
+            frequency=self.frequency,
+            additional_params=self.additional_params,
+            dds_amplitude=self.dds_amplitude,
+        )
         if self.pulse_area == 0:
-            return [Wait(0)]
-        Rabi_frequency = transition.Rabi_frequency(self.amplitude)
+            return Timestamp(0, self.pd_setpoint, self.phase, self.frequency, self.pd_selection, self.clk_shutter, self.clk_aom, self.additional_params, self.dds_amplitude)
+        Rabi_frequency = transition.Rabi_frequency(self.pd_setpoint)
         rect_pulse_duration = self.pulse_area / (2 * np.pi * Rabi_frequency)
         pulse = Pulse(
             1,
-            self.amplitude,
+            self.pd_setpoint,
             self.phase,
-            np.abs(self.frequency - transition.frequency_offset),
-            self.centered,
+            self.frequency,
+            self.pd_selection,
+            self.clk_shutter,
+            self.clk_aom,
+            self.additional_params,
+            self.dds_amplitude,
+            #self.centered,
             self.window,
             **self.kwargs,
         )
@@ -1132,11 +1292,24 @@ class AreaPulse(RFPulse):
 
     def __repr__(self) -> str:
         val = "AreaPulse({}".format(self.pulse_area)
-        if self.amplitude is not None:
-            val += ", amplitude={}".format(self.amplitude)
+        if self.pd_setpoint is not None:
+            val += ", pd_setpoint={}".format(self.pd_setpoint)
         if self.phase is not None:
             val += ", phase={}".format(self.phase)
-        val += ", centered={}, window={}".format(self.centered, self.window)
+        if self.frequency is not None:
+            val += ", frequency={}".format(self.frequency)
+        if self.pd_selection is not None:
+            val += ", pd_selection={}".format(self.pd_selection)
+        if self.clk_shutter is not None:
+            val += ", clk_shutter={}".format(self.clk_shutter)
+        if self.clk_aom is not None:
+            val += ", clk_aom={}".format(self.clk_shutter)
+        if self.additional_params is not None:
+            val += ", additional_params={}".format(self.additional_params)
+        if self.dds_amplitude is not None:
+            val += ", dds_amplitude={}".format(self.dds_amplitude)
+        #val += ", centered={}, window={}".format(self.centered, self.window)
+        val += ", window={}".format(self.window)
         if len(self.kwargs) > 0:
             val += ", {}".format(self.kwargs)
         val += ")"
@@ -1144,591 +1317,607 @@ class AreaPulse(RFPulse):
 
 
 def PiPulse(
-    amplitude: Optional[float] = None,
+    pd_setpoint: Optional[float] = None,
     phase: Optional[float] = None,
     frequency: Optional[float] = None,
-    centered: bool = False,
+    pd_selection: Optional[bool] = None,
+    clk_shutter: Optional[bool] = True,
+    clk_aom: Optional[bool] = False,
+    additional_params: Optional[dict] = None,
+    dds_amplitude: Optional[float] = None,
+    #centered: bool = False,
     window: type[RFPulse] = RectangularPulse,
     **kwargs,
 ) -> AreaPulse:
     """
-    PiPulse(amplitude=None, phase=None, centered=False, window=RectangularPulse, **kwargs)
-
     A wrapper for :func:`AreaPulse` with pulse area set to pi. Refer to :func:`AreaPulse` for full documentation.
     """
     return AreaPulse(
         np.pi,
-        amplitude=amplitude,
-        phase=phase,
-        frequency=frequency,
-        centered=centered,
-        window=window,
+        pd_setpoint,
+        phase,
+        frequency,
+        pd_selection,
+        clk_shutter,
+        clk_aom,
+        additional_params,
+        dds_amplitude,
+        #centered=centered,
+        window,
         **kwargs,
     )
 
 
-def PiOver2Pulse(
-    amplitude: Optional[float] = None,
+def Pi2Pulse(
+    pd_setpoint: Optional[float] = None,
     phase: Optional[float] = None,
     frequency: Optional[float] = None,
-    centered: bool = False,
+    pd_selection: Optional[bool] = None,
+    clk_shutter: Optional[bool] = True,
+    clk_aom: Optional[bool] = False,
+    additional_params: Optional[dict] = None,
+    dds_amplitude: Optional[float] = None,
+    #centered: bool = False,
     window: type[RFPulse] = RectangularPulse,
     **kwargs,
 ) -> AreaPulse:
     """
-    PiOver2Pulse(amplitude=None, phase=None, centered=False, window=RectangularPulse, **kwargs)
-
     A wrapper for :func:`AreaPulse` with pulse area set to pi/2. Refer to :func:`AreaPulse` for full documentation.
     """
     return AreaPulse(
         np.pi / 2,
-        amplitude=amplitude,
-        phase=phase,
-        frequency=frequency,
-        centered=centered,
-        window=window,
+        pd_setpoint,
+        phase,
+        frequency,
+        pd_selection,
+        clk_shutter,
+        clk_aom,
+        additional_params,
+        dds_amplitude,
+        #centered=centered,
+        window,
         **kwargs,
     )
 
 
-class BB1(AreaPulse):
-    """
-    Generates a `BB1 <https://doi.org/10.1006/jmra.1994.1159>`_ robust composite pulse.
-    """
-
-    def compile(self, state: SequenceState) -> List[RFPulse]:
-        if self.phase is None:
-            self.phase = state.phase
-        phi1 = np.arccos(-self.pulse_area / (2 * np.pi))
-        phi2 = 3 * phi1
-        pulses = [
-            PiPulse(
-                self.amplitude, self.phase + phi1, False, self.window, **self.kwargs
-            ),
-            AreaPulse(
-                2 * np.pi,
-                self.amplitude,
-                self.phase + phi2,
-                False,
-                self.window,
-                **self.kwargs,
-            ),
-            PiPulse(
-                self.amplitude, self.phase + phi1, False, self.window, **self.kwargs
-            ),
-            AreaPulse(
-                self.pulse_area,
-                self.amplitude,
-                self.phase,
-                False,
-                self.window,
-                **self.kwargs,
-            ),
-        ]
-        self.duration = 0
-        for p in pulses:
-            self.duration += deepcopy(p).compile(deepcopy(state))[0].duration
-        return AreaPulse.center(self.centered, pulses, self.duration)
-
-    def __repr__(self) -> str:
-        val = "BB1({}".format(self.pulse_area)
-        if self.amplitude is not None:
-            val += ", amplitude={}".format(self.amplitude)
-        if self.phase is not None:
-            val += ", phase={}".format(self.phase)
-        val += ", centered={}, window={}".format(self.centered, self.window)
-        if len(self.kwargs) > 0:
-            val += ", {}".format(self.kwargs)
-        val += ")"
-        return val
-
-
-class CORPSE(AreaPulse):
-    """
-    Generates a `CORPSE <https://doi.org/10.1103/PhysRevA.67.042308>`_ robust composite pulse.
-    """
-
-    def compile(self, state: SequenceState) -> List[RFPulse]:
-        if self.phase is None:
-            self.phase = state.phase
-        theta = self.pulse_area
-        theta1 = 2 * np.pi + theta / 2.0 - np.arcsin(np.sin(theta / 2.0) / 2.0)
-        theta2 = 2 * np.pi - 2 * np.arcsin(np.sin(theta / 2.0) / 2.0)
-        theta3 = theta / 2.0 - np.arcsin(np.sin(theta / 2.0) / 2.0)
-        pulses = [
-            AreaPulse(
-                theta1,
-                self.amplitude,
-                self.phase,
-                self.centered,
-                self.window,
-                **self.kwargs,
-            ),
-            AreaPulse(
-                theta2,
-                self.amplitude,
-                self.phase + np.pi,
-                self.centered,
-                self.window,
-                **self.kwargs,
-            ),
-            AreaPulse(
-                theta3,
-                self.amplitude,
-                self.phase,
-                self.centered,
-                self.window,
-                **self.kwargs,
-            ),
-        ]
-        self.duration = 0
-        for p in pulses:
-            self.duration += deepcopy(p).compile(deepcopy(state))[0].duration
-        return AreaPulse.center(self.centered, pulses, self.duration)
-
-    def __repr__(self) -> str:
-        val = "CORPSE({}".format(self.pulse_area)
-        if self.amplitude is not None:
-            val += ", amplitude={}".format(self.amplitude)
-        if self.phase is not None:
-            val += ", phase={}".format(self.phase)
-        val += ", centered={}, window={}".format(self.centered, self.window)
-        if len(self.kwargs) > 0:
-            val += ", {}".format(self.kwargs)
-        val += ")"
-        return val
+#class BB1(AreaPulse):
+#    """
+#    Generates a `BB1 <https://doi.org/10.1006/jmra.1994.1159>`_ robust composite pulse.
+#    """
+#
+#    def compile(self, state: SequenceState) -> List[RFPulse]:
+#        if self.phase is None:
+#            self.phase = state.phase
+#        phi1 = np.arccos(-self.pulse_area / (2 * np.pi))
+#        phi2 = 3 * phi1
+#        pulses = [
+#            PiPulse(
+#                self.amplitude, self.phase + phi1, False, self.window, **self.kwargs
+#            ),
+#            AreaPulse(
+#                2 * np.pi,
+#                self.amplitude,
+#                self.phase + phi2,
+#                False,
+#                self.window,
+#                **self.kwargs,
+#            ),
+#            PiPulse(
+#                self.amplitude, self.phase + phi1, False, self.window, **self.kwargs
+#            ),
+#            AreaPulse(
+#                self.pulse_area,
+#                self.amplitude,
+#                self.phase,
+#                False,
+#                self.window,
+#                **self.kwargs,
+#            ),
+#        ]
+#        self.duration = 0
+#        for p in pulses:
+#            self.duration += deepcopy(p).compile(deepcopy(state))[0].duration
+#        return AreaPulse.center(self.centered, pulses, self.duration)
+#
+#    def __repr__(self) -> str:
+#        val = "BB1({}".format(self.pulse_area)
+#        if self.amplitude is not None:
+#            val += ", amplitude={}".format(self.amplitude)
+#        if self.phase is not None:
+#            val += ", phase={}".format(self.phase)
+#        val += ", centered={}, window={}".format(self.centered, self.window)
+#        if len(self.kwargs) > 0:
+#            val += ", {}".format(self.kwargs)
+#        val += ")"
+#        return val
 
 
-def SpinEcho(duration: float, pulse: Optional[RFPulse] = None) -> List[RFBlock]:
+#class CORPSE(AreaPulse):
+#    """
+#    Generates a `CORPSE <https://doi.org/10.1103/PhysRevA.67.042308>`_ robust composite pulse.
+#    """
+#
+#    def compile(self, state: SequenceState) -> List[RFPulse]:
+#        if self.phase is None:
+#            self.phase = state.phase
+#        theta = self.pulse_area
+#        theta1 = 2 * np.pi + theta / 2.0 - np.arcsin(np.sin(theta / 2.0) / 2.0)
+#        theta2 = 2 * np.pi - 2 * np.arcsin(np.sin(theta / 2.0) / 2.0)
+#        theta3 = theta / 2.0 - np.arcsin(np.sin(theta / 2.0) / 2.0)
+#        pulses = [
+#            AreaPulse(
+#                theta1,
+#                self.amplitude,
+#                self.phase,
+#                self.centered,
+#                self.window,
+#                **self.kwargs,
+#            ),
+#            AreaPulse(
+#                theta2,
+#                self.amplitude,
+#                self.phase + np.pi,
+#                self.centered,
+#                self.window,
+#                **self.kwargs,
+#            ),
+#            AreaPulse(
+#                theta3,
+#                self.amplitude,
+#                self.phase,
+#                self.centered,
+#                self.window,
+#                **self.kwargs,
+#            ),
+#        ]
+#        self.duration = 0
+#        for p in pulses:
+#            self.duration += deepcopy(p).compile(deepcopy(state))[0].duration
+#        return AreaPulse.center(self.centered, pulses, self.duration)
+#
+#    def __repr__(self) -> str:
+#        val = "CORPSE({}".format(self.pulse_area)
+#        if self.amplitude is not None:
+#            val += ", amplitude={}".format(self.amplitude)
+#        if self.phase is not None:
+#            val += ", phase={}".format(self.phase)
+#        val += ", centered={}, window={}".format(self.centered, self.window)
+#        if len(self.kwargs) > 0:
+#            val += ", {}".format(self.kwargs)
+#        val += ")"
+#        return val
+
+
+def SpinEcho(duration: float, pulse: Optional[RFPulse] = None, phase: Optional[float] = None) -> List[RFBlock]:
     """
     SpinEcho(duration, pulse=None)
 
-    Returns a list of pulses and :class:`Wait` commands implementing a spin echo decoupling sequence consisting of a `duration/2` :class:`Wait`, a pi pulse about the :code:`x` axis and another :code:`duration/2` :class:`Wait`.
+    Returns a list of pulses and :class:`Dark` commands implementing a spin echo decoupling sequence consisting of a `duration/2` :class:`Dark`, a pi pulse and another :code:`duration/2` :class:`Dark`.
 
     Args:
         duration (float): The duration of the decoupling sequence in seconds.
-        pulse (RFPulse, optional): The pulse to use for the pi pulses in the decoupling sequence. Should normally be generated by :func:`PiPulse` or be a subclass of :class:`RFPulse`. The phase of the pulse is overridden in the sequence. Defaults to None, in which case a :class:`RectangularPulse` with the default amplitude and frequency for the selected :class:`Transition` is used.
+        pulse (RFPulse, optional): The pulse to use for the pi pulses in the decoupling sequence. Should normally be generated by :func:`PiPulse` or be a subclass of :class:`RFPulse`. Defaults to None, in which case a :class:`RectangularPulse` with the default pd_setpoint and frequency for the selected :class:`Transition` is used.
+        phase (float, optional): Phase of the echo pulse. Defaults to None, in which case the previous phase setting is used.
 
     Returns:
-        list of :class:`RFBlock`: Returns a list of pulses and :class:`Wait` commands implementing a spin echo decoupling sequence.
+        list of :class:`RFBlock`: Returns a list of pulses and :class:`Dark` commands implementing a spin echo decoupling sequence.
     """
     if pulse is None:
-        pulse = PiPulse(phase=0, centered=True)
+        pulse = PiPulse()#, centered=True)
     elif isinstance(pulse, type) and issubclass(pulse, RFPulse):
-        pulse = PiPulse(window=pulse, centered=True)
-    else:
-        pulse.phase = 0
-    return [Wait(duration / 2), pulse, Wait(duration / 2)]
+        pulse = PiPulse(window=pulse)#, centered=True)
+    pulse.phase = phase
+    return [Dark(duration / 2), pulse, Dark(duration / 2)]
 
 
-def XY8(duration: float, pulse: RFPulse = None) -> List[RFBlock]:
-    """
-    XY8(duration, pulse=None)
-
-    Returns a list of pulses and :class:`Wait` commands implementing an XY8 decoupling sequence. Refer to `this review <https://doi.org/10.1098/rsta.2011.0355>`_ for information about the XY8 pulse sequence.
-
-    Args:
-        duration (float): The duration of the decoupling sequence in seconds.
-        pulse (RFPulse, optional): The pulse to use for the pi pulses in the decoupling sequence. Should normally be generated by :func:`PiPulse` or be a subclass of :class:`RFPulse`. The phase of the pulses are overridden in the sequence. Defaults to None, in which case a :class:`RectangularPulse` with the default amplitude and frequency for the selected :class:`Transition` is used.
-
-    Returns:
-        list of :class:`RFBlock`: Returns a list of pulses and :class:`Wait` commands implementing an XY8 decoupling sequence.
-    """
-    if pulse is None:
-        pulse = PiPulse(phase=0, centered=True)
-    elif isinstance(pulse, type) and issubclass(pulse, RFPulse):
-        pulse = PiPulse(window=pulse, centered=True)
-
-    def phased_pulse(phase):
-        new_pulse = copy(pulse)
-        new_pulse.phase = phase
-        return new_pulse
-
-    phases = [0, np.pi / 2, 0, np.pi / 2, np.pi / 2, 0, np.pi / 2, 0]  # XYXYYXYX
-    return (
-        [Wait(duration / 16)]
-        + [
-            f(phi)
-            for phi in phases
-            for f in (phased_pulse, lambda x: Wait(duration / 8))
-        ][:-1]
-        + [Wait(duration / 16)]
-    )
-
-
-def XY16(duration: float, pulse: Optional[RFPulse] = None) -> List[RFBlock]:
-    """
-    XY16(duration, pulse=None)
-
-    Returns a list of pulses and :class:`Wait` commands implementing an XY16 decoupling sequence. Refer to `this review <https://doi.org/10.1098/rsta.2011.0355>`_ for information about the XY8 pulse sequence.
-
-    Args:
-        duration (float): The duration of the decoupling sequence in seconds.
-        pulse (RFPulse, optional): The pulse to use for the pi pulses in the decoupling sequence. Should normally be generated by :func:`PiPulse` or be a subclass of :class:`RFPulse`. The phase of the pulses are overridden in the sequence. Defaults to None, in which case a :class:`RectangularPulse` with the default amplitude and frequency for the selected :class:`Transition` is used.
-
-    Returns:
-        list of :class:`RFBlock`: Returns a list of pulses and :class:`Wait` commands implementing an XY16 decoupling sequence.
-    """
-    if pulse is None:
-        pulse = PiPulse(phase=0, centered=True)
-    elif isinstance(pulse, type) and issubclass(pulse, RFPulse):
-        pulse = PiPulse(window=pulse, centered=True)
-
-    def phased_pulse(phase):
-        new_pulse = copy(pulse)
-        new_pulse.phase = phase
-        return new_pulse
-
-    phases = [
-        0,
-        np.pi / 2,
-        0,
-        np.pi / 2,
-        np.pi / 2,
-        0,
-        np.pi / 2,
-        0,
-        np.pi,
-        3 * np.pi / 2,
-        np.pi,
-        3 * np.pi / 2,
-        3 * np.pi / 2,
-        np.pi,
-        3 * np.pi / 2,
-        np.pi,
-    ]  # XYXYYXYX-X-Y-X-Y-Y-X-Y-X
-    return (
-        [Wait(duration / 32)]
-        + [
-            f(phi)
-            for phi in phases
-            for f in (phased_pulse, lambda x: Wait(duration / 16))
-        ][:-1]
-        + [Wait(duration / 32)]
-    )
+#def XY8(duration: float, pulse: RFPulse = None) -> List[RFBlock]:
+#    """
+#    XY8(duration, pulse=None)
+#
+#    Returns a list of pulses and :class:`Wait` commands implementing an XY8 decoupling sequence. Refer to `this review <https://doi.org/10.1098/rsta.2011.0355>`_ for information about the XY8 pulse sequence.
+#
+#    Args:
+#        duration (float): The duration of the decoupling sequence in seconds.
+#        pulse (RFPulse, optional): The pulse to use for the pi pulses in the decoupling sequence. Should normally be generated by :func:`PiPulse` or be a subclass of :class:`RFPulse`. The phase of the pulses are overridden in the sequence. Defaults to None, in which case a :class:`RectangularPulse` with the default amplitude and frequency for the selected :class:`Transition` is used.
+#
+#    Returns:
+#        list of :class:`RFBlock`: Returns a list of pulses and :class:`Wait` commands implementing an XY8 decoupling sequence.
+#    """
+#    if pulse is None:
+#        pulse = PiPulse(phase=0, centered=True)
+#    elif isinstance(pulse, type) and issubclass(pulse, RFPulse):
+#        pulse = PiPulse(window=pulse, centered=True)
+#
+#    def phased_pulse(phase):
+#        new_pulse = copy(pulse)
+#        new_pulse.phase = phase
+#        return new_pulse
+#
+#    phases = [0, np.pi / 2, 0, np.pi / 2, np.pi / 2, 0, np.pi / 2, 0]  # XYXYYXYX
+#    return (
+#        [Wait(duration / 16)]
+#        + [
+#            f(phi)
+#            for phi in phases
+#            for f in (phased_pulse, lambda x: Wait(duration / 8))
+#        ][:-1]
+#        + [Wait(duration / 16)]
+#    )
 
 
-class KDD:
-    """
-    KDD(duration, pulse=None)
-
-    Returns a list of pulses and :class:`Wait` commands implementing a KDD decoupling sequence. Refer to `this review <https://doi.org/10.1098/rsta.2011.0355>`_ and `this paper <https://journals.aps.org/prl/pdf/10.1103/PhysRevLett.106.240501>`_ for information about the KDD pulse sequence.
-
-    Args:
-        duration (float): The duration of the decoupling sequence in seconds.
-        pulse (RFPulse, optional): The pulse to use for the pi pulses in the decoupling sequence. Should normally be generated by :func:`PiPulse` or be a subclass of :class:`RFPulse`. The phase of the pulses are overridden in the sequence. Defaults to None, in which case a :class:`RectangularPulse` with the default amplitude and frequency for the selected :class:`Transition` is used.
-
-    Returns:
-        list of :class:`RFBlock`: Returns a list of pulses and :class:`Wait` commands implementing a KDD decoupling sequence.
-    """
-
-    def __init__(self, duration: float, pulse: Optional[RFPulse] = None) -> None:
-        self.duration = duration
-        self.pulse = pulse
-
-    def __repr__(self) -> str:
-        return f"KDD({self.duration.__repr__()}, {self.pulse.__repr__()})"
-
-    def compile(self, state: SequenceState) -> List[RFBlock]:
-        if self.pulse is None:
-            self.pulse = PiPulse(phase=0, centered=True)
-        elif isinstance(self.pulse, type) and issubclass(self.pulse, RFPulse):
-            self.pulse = PiPulse(window=self.pulse, centered=True)
-
-        def phased_pulse(phase):
-            new_pulse = copy(self.pulse)
-            new_pulse.phase = phase
-            return new_pulse
-
-        tau = self.duration / 20.0
-
-        def KDDphi(phi):
-            return [
-                Wait(tau / 2.0),
-                phased_pulse(np.pi / 6 + phi),
-                Wait(tau),
-                phased_pulse(phi),
-                Wait(tau),
-                phased_pulse(np.pi / 2 + phi),
-                Wait(tau),
-                phased_pulse(phi),
-                Wait(tau),
-                phased_pulse(np.pi / 6 + phi),
-                Wait(tau / 2.0),
-            ]
-
-        return KDDphi(0) + KDDphi(np.pi / 2) + KDDphi(0) + KDDphi(np.pi / 2)
-
-
-def WAHUHA(duration: float, pulse: RFPulse = None):
-    if pulse is None:
-        pulse = PiOver2Pulse()
-
-    def phased_pulse(phase, area):
-        new_pulse = copy(pulse)
-        new_pulse.phase = phase
-        new_pulse.pulse_area = area
-        new_pulse.centered = True
-        return new_pulse
-
-    sequence = [
-        Wait(duration / 8),
-        phased_pulse(np.pi, np.pi / 2),
-        Wait(duration / 4),
-        phased_pulse(0, np.pi / 2),
-        Wait(duration / 8),
-        phased_pulse(0, np.pi),
-        Wait(duration / 8),
-        phased_pulse(np.pi, np.pi / 2),
-        Wait(duration / 4),
-        phased_pulse(0, np.pi / 2),
-        Wait(duration / 8),
-    ]
-
-    return sequence
+#def XY16(duration: float, pulse: Optional[RFPulse] = None) -> List[RFBlock]:
+#    """
+#    XY16(duration, pulse=None)
+#
+#    Returns a list of pulses and :class:`Wait` commands implementing an XY16 decoupling sequence. Refer to `this review <https://doi.org/10.1098/rsta.2011.0355>`_ for information about the XY8 pulse sequence.
+#
+#    Args:
+#        duration (float): The duration of the decoupling sequence in seconds.
+#        pulse (RFPulse, optional): The pulse to use for the pi pulses in the decoupling sequence. Should normally be generated by :func:`PiPulse` or be a subclass of :class:`RFPulse`. The phase of the pulses are overridden in the sequence. Defaults to None, in which case a :class:`RectangularPulse` with the default amplitude and frequency for the selected :class:`Transition` is used.
+#
+#    Returns:
+#        list of :class:`RFBlock`: Returns a list of pulses and :class:`Wait` commands implementing an XY16 decoupling sequence.
+#    """
+#    if pulse is None:
+#        pulse = PiPulse(phase=0, centered=True)
+#    elif isinstance(pulse, type) and issubclass(pulse, RFPulse):
+#        pulse = PiPulse(window=pulse, centered=True)
+#
+#    def phased_pulse(phase):
+#        new_pulse = copy(pulse)
+#        new_pulse.phase = phase
+#        return new_pulse
+#
+#    phases = [
+#        0,
+#        np.pi / 2,
+#        0,
+#        np.pi / 2,
+#        np.pi / 2,
+#        0,
+#        np.pi / 2,
+#        0,
+#        np.pi,
+#        3 * np.pi / 2,
+#        np.pi,
+#        3 * np.pi / 2,
+#        3 * np.pi / 2,
+#        np.pi,
+#        3 * np.pi / 2,
+#        np.pi,
+#    ]  # XYXYYXYX-X-Y-X-Y-Y-X-Y-X
+#    return (
+#        [Wait(duration / 32)]
+#        + [
+#            f(phi)
+#            for phi in phases
+#            for f in (phased_pulse, lambda x: Wait(duration / 16))
+#        ][:-1]
+#        + [Wait(duration / 32)]
+#    )
 
 
-def DROID60(duration: float, pulse: RFPulse = None):
-    if pulse is None:
-        pulse = PiOver2Pulse()
-
-    def phased_pulse(phase, area):
-        new_pulse = copy(pulse)
-        new_pulse.phase = phase
-        new_pulse.pulse_area = area
-        new_pulse.centered = False
-        return new_pulse
-
-    def px():
-        return phased_pulse(0, np.pi)
-
-    def p2x():
-        return phased_pulse(0, np.pi / 2)
-
-    def py():
-        return phased_pulse(np.pi / 2, np.pi)
-
-    def p2y():
-        return phased_pulse(np.pi / 2, np.pi / 2)
-
-    def mpx():
-        return phased_pulse(np.pi, np.pi)
-
-    def mp2x():
-        return phased_pulse(np.pi, np.pi / 2)
-
-    def mpy():
-        return phased_pulse(3 * np.pi / 2, np.pi)
-
-    def mp2y():
-        return phased_pulse(3 * np.pi / 2, np.pi / 2)
-
-    def w():
-        return Wait(duration / 48)
-
-    seq = [
-        w(),
-        px(),
-        w(),
-        p2x(),
-        mp2y(),
-        w(),
-        mpx(),
-        w(),
-        mpx(),
-        w(),
-        px(),
-        w(),
-        p2x(),
-        mp2y(),
-        w(),
-        mpx(),
-        w(),
-        mpx(),
-        w(),
-        px(),
-        w(),
-        p2x(),
-        mp2y(),
-        w(),
-        mpx(),
-        w(),
-        mpx(),
-        w(),
-        mpy(),
-        w(),
-        mp2y(),
-        p2x(),
-        w(),
-        py(),
-        w(),
-        py(),
-        w(),
-        mpy(),
-        w(),
-        mp2y(),
-        p2x(),
-        w(),
-        py(),
-        w(),
-        py(),
-        w(),
-        mpy(),
-        w(),
-        mp2y(),
-        p2x(),
-        w(),
-        py(),
-        w(),
-        py(),
-        w(),
-        mpy(),
-        w(),
-        p2x(),
-        p2y(),
-        w(),
-        py(),
-        w(),
-        mpy(),
-        w(),
-        mpy(),
-        w(),
-        p2x(),
-        p2y(),
-        w(),
-        py(),
-        w(),
-        mpy(),
-        w(),
-        mpy(),
-        w(),
-        p2x(),
-        p2y(),
-        w(),
-        py(),
-        w(),
-        mpx(),
-        w(),
-        mpx(),
-        w(),
-        p2y(),
-        p2x(),
-        w(),
-        px(),
-        w(),
-        mpx(),
-        w(),
-        mpx(),
-        w(),
-        p2y(),
-        p2x(),
-        w(),
-        px(),
-        w(),
-        mpx(),
-        w(),
-        mpx(),
-        w(),
-        p2y(),
-        p2x(),
-        w(),
-        px(),
-        w(),
-        mpy(),
-    ]
-    return seq
+#class KDD:
+#    """
+#    KDD(duration, pulse=None)
+#
+#    Returns a list of pulses and :class:`Wait` commands implementing a KDD decoupling sequence. Refer to `this review <https://doi.org/10.1098/rsta.2011.0355>`_ and `this paper <https://journals.aps.org/prl/pdf/10.1103/PhysRevLett.106.240501>`_ for information about the KDD pulse sequence.
+#
+#    Args:
+#        duration (float): The duration of the decoupling sequence in seconds.
+#        pulse (RFPulse, optional): The pulse to use for the pi pulses in the decoupling sequence. Should normally be generated by :func:`PiPulse` or be a subclass of :class:`RFPulse`. The phase of the pulses are overridden in the sequence. Defaults to None, in which case a :class:`RectangularPulse` with the default amplitude and frequency for the selected :class:`Transition` is used.
+#
+#    Returns:
+#        list of :class:`RFBlock`: Returns a list of pulses and :class:`Wait` commands implementing a KDD decoupling sequence.
+#    """
+#
+#    def __init__(self, duration: float, pulse: Optional[RFPulse] = None) -> None:
+#        self.duration = duration
+#        self.pulse = pulse
+#
+#    def __repr__(self) -> str:
+#        return f"KDD({self.duration.__repr__()}, {self.pulse.__repr__()})"
+#
+#    def compile(self, state: SequenceState) -> List[RFBlock]:
+#        if self.pulse is None:
+#            self.pulse = PiPulse(phase=0, centered=True)
+#        elif isinstance(self.pulse, type) and issubclass(self.pulse, RFPulse):
+#            self.pulse = PiPulse(window=self.pulse, centered=True)
+#
+#        def phased_pulse(phase):
+#            new_pulse = copy(self.pulse)
+#            new_pulse.phase = phase
+#            return new_pulse
+#
+#        tau = self.duration / 20.0
+#
+#        def KDDphi(phi):
+#            return [
+#                Wait(tau / 2.0),
+#                phased_pulse(np.pi / 6 + phi),
+#                Wait(tau),
+#                phased_pulse(phi),
+#                Wait(tau),
+#                phased_pulse(np.pi / 2 + phi),
+#                Wait(tau),
+#                phased_pulse(phi),
+#                Wait(tau),
+#                phased_pulse(np.pi / 6 + phi),
+#                Wait(tau / 2.0),
+#            ]
+#
+#        return KDDphi(0) + KDDphi(np.pi / 2) + KDDphi(0) + KDDphi(np.pi / 2)
 
 
-def WAHUHA_echo(duration: float, pulse: RFPulse = None):
-    if pulse is None:
-        pulse = PiOver2Pulse()
-
-    def phased_pulse(phase, area):
-        new_pulse = copy(pulse)
-        new_pulse.phase = phase
-        new_pulse.pulse_area = area
-        new_pulse.centered = False
-        return new_pulse
-
-    def px():
-        return phased_pulse(0, np.pi)
-
-    def p2x():
-        return phased_pulse(0, np.pi / 2)
-
-    def py():
-        return phased_pulse(np.pi / 2, np.pi)
-
-    def p2y():
-        return phased_pulse(np.pi / 2, np.pi / 2)
-
-    def mpx():
-        return phased_pulse(np.pi, np.pi)
-
-    def mp2x():
-        return phased_pulse(np.pi, np.pi / 2)
-
-    def mpy():
-        return phased_pulse(3 * np.pi / 2, np.pi)
-
-    def mp2y():
-        return phased_pulse(3 * np.pi / 2, np.pi / 2)
-
-    def w():
-        return Wait(duration / 6)
-
-    seq = [w(), p2x(), w(), mp2y(), w(), py(), w(), p2y(), w(), p2x(), w(), mpx()]
-    return seq
+#def WAHUHA(duration: float, pulse: RFPulse = None):
+#    if pulse is None:
+#        pulse = Pi2Pulse()
+#
+#    def phased_pulse(phase, area):
+#        new_pulse = copy(pulse)
+#        new_pulse.phase = phase
+#        new_pulse.pulse_area = area
+#        new_pulse.centered = True
+#        return new_pulse
+#
+#    sequence = [
+#        Wait(duration / 8),
+#        phased_pulse(np.pi, np.pi / 2),
+#        Wait(duration / 4),
+#        phased_pulse(0, np.pi / 2),
+#        Wait(duration / 8),
+#        phased_pulse(0, np.pi),
+#        Wait(duration / 8),
+#        phased_pulse(np.pi, np.pi / 2),
+#        Wait(duration / 4),
+#        phased_pulse(0, np.pi / 2),
+#        Wait(duration / 8),
+#    ]
+#
+#    return sequence
 
 
-def Ramsey(
-    duration: float,
-    phase: float = 0,
-    pulse: RFPulse = None,
-    decoupling: List[RFPulse | Wait] = None,
-) -> List[RFBlock]:
-    """
-    Ramsey(duration, phase, pulse=None, decoupling=None)
+#def DROID60(duration: float, pulse: RFPulse = None):
+#    if pulse is None:
+#        pulse = Pi2Pulse()
+#
+#    def phased_pulse(phase, area):
+#        new_pulse = copy(pulse)
+#        new_pulse.phase = phase
+#        new_pulse.pulse_area = area
+#        new_pulse.centered = False
+#        return new_pulse
+#
+#    def px():
+#        return phased_pulse(0, np.pi)
+#
+#    def p2x():
+#        return phased_pulse(0, np.pi / 2)
+#
+#    def py():
+#        return phased_pulse(np.pi / 2, np.pi)
+#
+#    def p2y():
+#        return phased_pulse(np.pi / 2, np.pi / 2)
+#
+#    def mpx():
+#        return phased_pulse(np.pi, np.pi)
+#
+#    def mp2x():
+#        return phased_pulse(np.pi, np.pi / 2)
+#
+#    def mpy():
+#        return phased_pulse(3 * np.pi / 2, np.pi)
+#
+#    def mp2y():
+#        return phased_pulse(3 * np.pi / 2, np.pi / 2)
+#
+#    def w():
+#        return Wait(duration / 48)
+#
+#    seq = [
+#        w(),
+#        px(),
+#        w(),
+#        p2x(),
+#        mp2y(),
+#        w(),
+#        mpx(),
+#        w(),
+#        mpx(),
+#        w(),
+#        px(),
+#        w(),
+#        p2x(),
+#        mp2y(),
+#        w(),
+#        mpx(),
+#        w(),
+#        mpx(),
+#        w(),
+#        px(),
+#        w(),
+#        p2x(),
+#        mp2y(),
+#        w(),
+#        mpx(),
+#        w(),
+#        mpx(),
+#        w(),
+#        mpy(),
+#        w(),
+#        mp2y(),
+#        p2x(),
+#        w(),
+#        py(),
+#        w(),
+#        py(),
+#        w(),
+#        mpy(),
+#        w(),
+#        mp2y(),
+#        p2x(),
+#        w(),
+#        py(),
+#        w(),
+#        py(),
+#        w(),
+#        mpy(),
+#        w(),
+#        mp2y(),
+#        p2x(),
+#        w(),
+#        py(),
+#        w(),
+#        py(),
+#        w(),
+#        mpy(),
+#        w(),
+#        p2x(),
+#        p2y(),
+#        w(),
+#        py(),
+#        w(),
+#        mpy(),
+#        w(),
+#        mpy(),
+#        w(),
+#        p2x(),
+#        p2y(),
+#        w(),
+#        py(),
+#        w(),
+#        mpy(),
+#        w(),
+#        mpy(),
+#        w(),
+#        p2x(),
+#        p2y(),
+#        w(),
+#        py(),
+#        w(),
+#        mpx(),
+#        w(),
+#        mpx(),
+#        w(),
+#        p2y(),
+#        p2x(),
+#        w(),
+#        px(),
+#        w(),
+#        mpx(),
+#        w(),
+#        mpx(),
+#        w(),
+#        p2y(),
+#        p2x(),
+#        w(),
+#        px(),
+#        w(),
+#        mpx(),
+#        w(),
+#        mpx(),
+#        w(),
+#        p2y(),
+#        p2x(),
+#        w(),
+#        px(),
+#        w(),
+#        mpy(),
+#    ]
+#    return seq
 
-    Returns a list of pulses and :class:`Wait` commands implementing a Ramsey interferometry sequence, consisting of a pi/2 pulse with zero phase, a :class:`Wait` of length :code:`duration`, and a final pi/2 pulse with phase :code:`phase`. A decoupling sequence can optionally be inserted instead of the :class:`Wait`.
 
-    Args:
-        duration (float): The dark time (in seconds) for the Ramsey sequence.
-        phase (float, optional): The phase of the final pulse. Defaults to 0.
-        pulse (RFPulse, optional): The pulse to use for the pi/2 pulses in the Ramsey sequence. Should normally be generated by :func:`PiOver2Pulse` or be a subclass of :class:`RFPulse`. The phase of the pulses are overridden in the sequence. Defaults to None, in which case a :class:`RectangularPulse` with the default amplitude and frequency for the selected :class:`Transition` is used.
-        decoupling (list of :class:`RFBlock`, optional): A decoupling sequence (generated by :func:`XY8`, for example) to insert during the dark time. The duration of :class:`Wait` commands is adjusted to make the total length equal to :code:`duration`. Must only contain :class:`RFPulse` and :class:`Wait` blocks. Defaults to None.
+#def WAHUHA_echo(duration: float, pulse: RFPulse = None):
+#    if pulse is None:
+#        pulse = Pi2Pulse()
+#
+#    def phased_pulse(phase, area):
+#        new_pulse = copy(pulse)
+#        new_pulse.phase = phase
+#        new_pulse.pulse_area = area
+#        new_pulse.centered = False
+#        return new_pulse
+#
+#    def px():
+#        return phased_pulse(0, np.pi)
+#
+#    def p2x():
+#        return phased_pulse(0, np.pi / 2)
+#
+#    def py():
+#        return phased_pulse(np.pi / 2, np.pi)
+#
+#    def p2y():
+#        return phased_pulse(np.pi / 2, np.pi / 2)
+#
+#    def mpx():
+#        return phased_pulse(np.pi, np.pi)
+#
+#    def mp2x():
+#        return phased_pulse(np.pi, np.pi / 2)
+#
+#    def mpy():
+#        return phased_pulse(3 * np.pi / 2, np.pi)
+#
+#    def mp2y():
+#        return phased_pulse(3 * np.pi / 2, np.pi / 2)
+#
+#    def w():
+#        return Wait(duration / 6)
+#
+#    seq = [w(), p2x(), w(), mp2y(), w(), py(), w(), p2y(), w(), p2x(), w(), mpx()]
+#    return seq
 
-    Returns:
-        list of :class:`RFBlock`: Returns a list of pulses and :class:`Wait` commands implementing a Ramsey sequence.
-    """
-    if decoupling == None:
-        decoupling = [Wait(duration)]
-    else:
-        decoupling = deepcopy(decoupling)
-        decoupling_duration = 0
-        for b in decoupling:
-            if isinstance(b, Wait):
-                decoupling_duration += b.duration
-            elif isinstance(b, RFPulse):
-                b.centered = True
-            else:
-                raise TypeError(
-                    "Only RFPulse and Wait are allowed in the decoupling sequence. {} was included.".format(
-                        b
-                    )
-                )
-        for b in decoupling:
-            if isinstance(b, Wait):
-                b.duration *= duration / decoupling_duration
-    if pulse is None:
-        pulse = PiOver2Pulse()
-    elif isinstance(pulse, type) and issubclass(pulse, RFPulse):
-        pulse = PiPulse(window=pulse, centered=True)
-    else:
-        pulse.phase = 0
-    end_pulse = copy(pulse)
-    end_pulse.phase = phase
-    return [pulse] + decoupling + [end_pulse]
+
+#def Ramsey(
+#    duration: float,
+#    phase: float = 0,
+#    pulse: RFPulse = None,
+#    decoupling: List[RFPulse | Dark] = None,
+#) -> List[RFBlock]:
+#    """
+#    Ramsey(duration, phase, pulse=None, decoupling=None)
+#
+#    Returns a list of pulses and :class:`Dark` commands implementing a Ramsey interferometry sequence, consisting of a pi/2 pulse with zero phase, a :class:`Dark` of length :code:`duration`, and a final pi/2 pulse with phase :code:`phase`. A decoupling sequence can optionally be inserted instead of the :class:`Dark`.
+#
+#    Args:
+#        duration (float): The dark time (in seconds) for the Ramsey sequence.
+#        phase (float, optional): The phase of the final pulse. Defaults to 0.
+#        pulse (RFPulse, optional): The pulse to use for the pi/2 pulses in the Ramsey sequence. Should normally be generated by :func:`Pi2Pulse` or be a subclass of :class:`RFPulse`. The phase of the pulses are overridden in the sequence. Defaults to None, in which case a :class:`RectangularPulse` with the default amplitude and frequency for the selected :class:`Transition` is used.
+#        decoupling (list of :class:`RFBlock`, optional): A decoupling sequence (generated by :func:`XY8`, for example) to insert during the dark time. #The duration of :class:`Dark` commands is adjusted to make the total length equal to :code:`duration`. Must only contain :class:`RFPulse` and :class:`Dark` blocks. Defaults to None.
+#
+#    Returns:
+#        list of :class:`RFBlock`: Returns a list of pulses and :class:`Dark` commands implementing a Ramsey sequence.
+#    """
+#    if decoupling == None:
+#        decoupling = [Dark(duration)]
+#    else:
+#        decoupling = deepcopy(decoupling)
+#        decoupling_duration = 0
+#        for b in decoupling:
+#            if isinstance(b, Dark):
+#                decoupling_duration += b.duration
+#            elif isinstance(b, RFPulse):
+#                b.centered = True
+#            else:
+#                raise TypeError(
+#                    "Only RFPulse and Dark are allowed in the decoupling sequence. {} was included.".format(
+#                        b
+#                    )
+#                )
+#        for b in decoupling:
+#            if isinstance(b, Dark):
+#                b.duration *= duration / decoupling_duration
+#    if pulse is None:
+#        pulse = Pi2Pulse()
+#    elif isinstance(pulse, type) and issubclass(pulse, RFPulse):
+#        pulse = PiPulse(window=pulse, centered=True)
+#    else:
+#        pulse.phase = 0
+#    end_pulse = copy(pulse)
+#    end_pulse.phase = phase
+#    return [pulse] + decoupling + [end_pulse]
 
 
 class Repeat(RFBlock):
@@ -1751,7 +1940,7 @@ def compile_sequence(
 
     Compilation steps:
         * Compiles instance of :class:`RFBlock` with :code:`compile` functions
-        * Updates durations based on :class:`AdjustPrevDuration` and :class:`AdjustNextDuration`
+        #* Updates durations based on :class:`AdjustPrevDuration` and :class:`AdjustNextDuration`
         * Replaces :class:`SyncPoint` blocks with  :class:`Wait` blocks.
         * Converts timestamps from relative to absolute time
         * Computes durations of each section of the sequence
@@ -1781,58 +1970,58 @@ def compile_sequence(
                 continue
             if hasattr(head, "atomic") and head.atomic:  # process single pulse
                 block = head.compile(state)
-                if (
-                    len(compiled_channel) > 0
-                    and isinstance(compiled_channel[-1], AdjustNextDuration)
-                    and not isinstance(block, Timestamp)
-                ):
-                    raise TypeError(
-                        "{} must be followed by a Timestamp, but is followed by {}".format(
-                            compiled_channel[-1], block
-                        )
-                    )
+                #if (
+                #    len(compiled_channel) > 0
+                #    and isinstance(compiled_channel[-1], AdjustNextDuration)
+                #    and not isinstance(block, Timestamp)
+                #):
+                #    raise TypeError(
+                #        "{} must be followed by a Timestamp, but is followed by {}".format(
+                #            compiled_channel[-1], block
+                #        )
+                #    )
                 if isinstance(block, SyncPoint):
                     raise (NotImplementedError())
                 elif isinstance(block, SetTransition):
                     pass
-                elif isinstance(block, AdjustPrevDuration):
-                    if len(compiled_channel) == 0:
-                        pass
-                    elif not isinstance(compiled_channel[-1], Timestamp):
-                        raise TypeError(
-                            "{} must follow a Timestamp, but follows {}".format(
-                                block, compiled_channel[-1]
-                            )
-                        )
-                    elif -block.duration > compiled_channel[-1].duration:
-                        raise ValueError(
-                            "{} would make the duration of {} negative".format(
-                                block, compiled_channel[-1]
-                            )
-                        )
-                    else:
-                        compiled_channel[-1].duration += block.duration
+                #elif isinstance(block, AdjustPrevDuration):
+                #    if len(compiled_channel) == 0:
+                #        pass
+                #    elif not isinstance(compiled_channel[-1], Timestamp):
+                #        raise TypeError(
+                #            "{} must follow a Timestamp, but follows {}".format(
+                #                block, compiled_channel[-1]
+                #            )
+                #        )
+                #    elif -block.duration > compiled_channel[-1].duration:
+                #        raise ValueError(
+                #            "{} would make the duration of {} negative".format(
+                #                block, compiled_channel[-1]
+                #            )
+                #        )
+                #    else:
+                #        compiled_channel[-1].duration += block.duration
                 elif isinstance(block, Timestamp):
-                    if len(compiled_channel) > 0 and isinstance(
-                        compiled_channel[-1], AdjustNextDuration
-                    ):
-                        adjust_next = compiled_channel.pop()
-                        if -adjust_next.duration > block.duration:
-                            raise ValueError(
-                                "{} would make the duration of {} negative".format(
-                                    adjust_next, block
-                                )
-                            )
-                        else:
-                            block.duration += adjust_next.duration
+                    #if len(compiled_channel) > 0 and isinstance(
+                    #    compiled_channel[-1], AdjustNextDuration
+                    #):
+                    #    adjust_next = compiled_channel.pop()
+                    #    if -adjust_next.duration > block.duration:
+                    #        raise ValueError(
+                    #            "{} would make the duration of {} negative".format(
+                    #                adjust_next, block
+                    #            )
+                    #        )
+                    #    else:
+                    #        block.duration += adjust_next.duration
 
                     # adjust remaining None entries
+                    if block.pd_setpoint is None:
+                        block.pd_setpoint = state.pd_setpoint
                     if block.phase is None:
                         block.phase = state.phase
                     if block.frequency is None:
                         block.frequency = state.frequency
-                    if block.pd_setpoint is None:
-                        block.pd_setpoint = state.pd_setpoint
                     if block.pd_selection is None:
                         block.pd_selection = state.pd_selection
                     if block.clk_shutter is None:
@@ -1886,9 +2075,9 @@ def compile_sequence(
             compiled_channel.append(
                 Timestamp(
                     duration,
+                    pd_setpoint=state.pd_setpoint,
                     phase=state.phase,
                     frequency=state.frequency,
-                    pd_setpoint=state.pd_setpoint,
                     pd_selection=state.pd_selection,
                     clk_shutter=state.clk_shutter,
                     clk_aom=state.clk_aom,
@@ -2142,39 +2331,39 @@ def extract_time_traces(seq: List[RFBlock]):
         traces[channel] = {}
         
         times = []
-        ampls = []
+        dds_ampls = []
         phases = []
         freqs = []
-        digital = [[] for i in range(dds_settings.N_DIGITAL)]
+        dds_digital = [[] for i in range(dds_settings.N_DIGITAL)]
         trig = 0
         
         for block in seq_channel[:-1]:
-            if block.wait_for_trigger:
+            if block.dds_wait_for_trigger:
                 traces[channel][trig] = {
                     "time": np.array(times, dtype=np.double),
-                    "amplitude": np.array(ampls, dtype=np.double),
                     "phase": np.array(phases, dtype=np.double),
                     "frequency": np.array(freqs, dtype=np.double),
-                    "digital": np.array(digital, dtype=int),
+                    "dds_amplitude": np.array(dds_ampls, dtype=np.double),
+                    "dds_digital": np.array(dds_digital, dtype=int),
                 }
                 times = []
-                ampls = []
+                dds_ampls = []
                 phases = []
                 freqs = []
-                digital = [[] for i in range(dds_settings.N_DIGITAL)]
+                dds_digital = [[] for i in range(dds_settings.N_DIGITAL)]
                 trig += 1
             times.append(block.duration)
-            ampls.append(block.amplitude)
             phases.append(block.phase)
             freqs.append(block.frequency)
-            for j, b in enumerate(block.digital_out):
-                digital[j].append(1 if b else 0)
+            dds_ampls.append(block.dds_amplitude)
+            for j, b in enumerate(block.dds_digital_out):
+                dds_digital[j].append(1 if b else 0)
         traces[channel][trig] = {
             "time": np.array(times, dtype=np.double),
-            "amplitude": np.array(ampls, dtype=np.double),
             "phase": np.array(phases, dtype=np.double),
             "frequency": np.array(freqs, dtype=np.double),
-            "digital": np.array(digital, dtype=int),
+            "dds_amplitude": np.array(dds_ampls, dtype=np.double),
+            "dds_digital": np.array(dds_digital, dtype=int),
         }
     
     return traces
@@ -2215,7 +2404,7 @@ def str2timetraces(json_str):
         for segment, traces in sequence.items():
             time_traces[ch][segment] = {}
             for trace, vals in traces.items():
-                if trace != 'digital':
+                if trace != 'dds_digital':
                     dtype = np.double
                 else:
                     dtype = int
@@ -2239,48 +2428,68 @@ def plot_sequence(seq: List[RFBlock]):
     compiled, durations = compile_sequence(seq, output_json=False)
 
     fig = make_subplots(
-        rows=3 + dds_settings.N_DIGITAL,
+        rows=7, #+ dds_settings.N_DIGITAL,
         cols=1,
         shared_xaxes=True,
         vertical_spacing=0.015,
-        row_heights=[0.25, 0.25, 0.25] + [0.2 / dds_settings.N_DIGITAL] * dds_settings.N_DIGITAL,
+        row_heights=[0.25, 0.25, 0.25, 0.2, 0.2, 0.2, 0.25] #+ [0.2 / dds_settings.N_DIGITAL] * dds_settings.N_DIGITAL,
     )
 
     plot_data = {}
     for channel, seq_channel in compiled.items():
         times = []
-        ampls = []
+        pd_setpoints = []
         phases = []
         freqs = []
-        digital = [[] for i in range(dds_settings.N_DIGITAL)]
+        pd_selections = []
+        clk_shutters = []
+        clk_aoms = []
+        dds_ampls = []
+        dds_digital = [[] for i in range(dds_settings.N_DIGITAL)]
         i = 0
         for block in seq_channel[:-1]:
-            if block.wait_for_trigger:
+            if block.dds_wait_for_trigger:
                 plot_data[str((channel, i))] = {
                     "time": times,
-                    "amplitude": ampls,
+                    "pd_setpoint": pd_setpoints,
                     "phase": phases,
                     "frequency": freqs,
-                    "digital": digital,
+                    "pd_selection": pd_selections,
+                    "clk_shutter": clk_shutters,
+                    "clk_aom": clk_aoms,
+                    "dds_amplitude": dds_ampls,
+                    "dds_digital": dds_digital,
                 }
                 times = []
-                ampls = []
+                pd_setpoints = []
                 phases = []
                 freqs = []
-                digital = [[] for i in range(dds_settings.N_DIGITAL)]
+                pd_selections = []
+                clk_shutters = []
+                clk_aoms = []
+                dds_ampls = []
+                dds_digital = [[] for i in range(dds_settings.N_DIGITAL)]
                 i += 1
             times.append(block.duration)
-            ampls.append(block.amplitude)
+            pd_setpoints.append(block.pd_setpoint)
             phases.append(block.phase)
             freqs.append(block.frequency)
-            for j, b in enumerate(block.digital_out):
-                digital[j].append(1 if b else 0)
+            pd_selections.append(1 if block.pd_selection else 0)
+            clk_shutters.append(1 if block.clk_shutter else 0)
+            clk_aoms.append(1 if block.clk_aom else 0)
+            dds_ampls.append(block.dds_amplitude)
+            for j, b in enumerate(block.dds_digital_out):
+                dds_digital[j].append(1 if b else 0)
         plot_data[str((channel, i))] = {
             "time": times,
-            "amplitude": ampls,
+            "pd_setpoint": pd_setpoints,
             "phase": phases,
             "frequency": freqs,
-            "digital": digital,
+            "pd_selection": pd_selections,
+            "clk_shutter": clk_shutters,
+            "clk_aom": clk_aoms,
+            "dds_amplitude": dds_ampls,
+            "dds_digital": dds_digital,
         }
 
     color_i = 0
@@ -2289,12 +2498,13 @@ def plot_sequence(seq: List[RFBlock]):
         fig.add_trace(
             go.Scatter(
                 x=pd["time"],
-                y=pd["amplitude"],
+                y=pd["pd_setpoint"],
                 line_shape="hv",
-                name="{}".format(k),
+                name="PD Set {}".format(k),
                 fill="tozeroy",
                 legendgroup=k,
                 line_color=colors[color_i],
+                showlegend=False,
                 mode="lines",
             ),
             row=1,
@@ -2303,7 +2513,7 @@ def plot_sequence(seq: List[RFBlock]):
         fig.add_trace(
             go.Scatter(
                 x=pd["time"],
-                y=pd["phase"],
+                y=[phase/np.pi for phase in pd["phase"]],
                 line_shape="hv",
                 name="Phase {}".format(k),
                 fill="tozeroy",
@@ -2321,6 +2531,7 @@ def plot_sequence(seq: List[RFBlock]):
                 y=pd["frequency"],
                 line_shape="hv",
                 name="Frequency {}".format(k),
+                fill="tozeroy",
                 legendgroup=k,
                 line_color=colors[color_i],
                 showlegend=False,
@@ -2329,43 +2540,106 @@ def plot_sequence(seq: List[RFBlock]):
             row=3,
             col=1,
         )
-        if k[1] == "0":
-            for i in range(dds_settings.N_DIGITAL):
-                fig.add_trace(
-                    go.Scatter(
-                        x=pd["time"],
-                        y=pd["digital"][i],
-                        line_shape="hv",
-                        name="D{} {}".format(i, k),
-                        fill="tozeroy",
-                        legendgroup=k,
-                        line_color=colors[color_i],
-                        showlegend=False,
-                        mode="lines",
-                    ),
-                    row=4 + i,
-                    col=1,
-                )
+        fig.add_trace(
+            go.Scatter(
+                x=pd["time"],
+                y=pd["pd_selection"],
+                line_shape="hv",
+                name="PD Sel {}".format(k),
+                fill="tozeroy",
+                legendgroup=k,
+                line_color=colors[color_i],
+                showlegend=False,
+                mode="lines",
+            ),
+            row=4,
+            col=1,
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=pd["time"],
+                y=pd["clk_shutter"],
+                line_shape="hv",
+                name="CLK Shutt {}".format(k),
+                fill="tozeroy",
+                legendgroup=k,
+                line_color=colors[color_i],
+                showlegend=False,
+                mode="lines",
+            ),
+            row=5,
+            col=1,
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=pd["time"],
+                y=pd["clk_aom"],
+                line_shape="hv",
+                name="CLK AOM {}".format(k),
+                fill="tozeroy",
+                legendgroup=k,
+                line_color=colors[color_i],
+                showlegend=False,
+                mode="lines",
+            ),
+            row=6,
+            col=1,
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=pd["time"],
+                y=pd["dds_amplitude"],
+                line_shape="hv",
+                name="{}".format(k),
+                fill="tozeroy",
+                legendgroup=k,
+                line_color=colors[color_i],
+                mode="lines",
+            ),
+            row=7,
+            col=1,
+        )
+        #if k[1] == "0":
+        #    for i in range(dds_settings.N_DIGITAL):
+        #        fig.add_trace(
+        #            go.Scatter(
+        #                x=pd["time"],
+        #                y=pd["dds_digital"][i],
+        #                line_shape="hv",
+        #                name="D{} {}".format(i, k),
+        #                fill="tozeroy",
+        #                legendgroup=k,
+        #                line_color=colors[color_i],
+        #                showlegend=False,
+        #                mode="lines",
+        #            ),
+        #            row=8 + i,
+        #            col=1,
+        #        )
         color_i += 1
 
     fig.update_xaxes(
         title_text="Time (s)",
-        row=3 + dds_settings.N_DIGITAL,
+        row=7, #+ dds_settings.N_DIGITAL,
         col=1,
         rangemode="tozero",
         side="bottom",
     )
-    fig.update_yaxes(title_text="Frequency (Hz)", row=3, col=1)
-    fig.update_yaxes(title_text="Amplitude", row=1, col=1, range=[0, 1])
-    fig.update_yaxes(title_text="Phase (rad)", row=2, col=1)
-    for i in range(dds_settings.N_DIGITAL):
-        fig.update_yaxes(
-            title_text="D{}".format(i),
-            row=4 + i,
-            col=1,
-            range=[0, 1],
-            showticklabels=False,
-        )
+    fig.update_yaxes(title_text="PD Set (V)", row=1, col=1)
+    fig.update_yaxes(title_text="Phase (\u03c0)", row=2, col=1)
+    fig.update_yaxes(title_text="Freq (Hz)", row=3, col=1)
+    fig.update_yaxes(title_text="PD Sel", row=4, col=1, range=[0, 1])
+    fig.update_yaxes(title_text="CLK Shutt", row=5, col=1, range=[0, 1])
+    fig.update_yaxes(title_text="CLK AOM", row=6, col=1, range=[0, 1])
+    fig.update_yaxes(title_text="DDS Ampl", row=7, col=1, range=[0, 1])
+    #for i in range(dds_settings.N_DIGITAL):
+    #    fig.update_yaxes(
+    #        title_text="D{}".format(i),
+    #        row=8 + i,
+    #        col=1,
+    #        range=[0, 1],
+    #        showticklabels=False,
+    #    )
     fig.update_layout(legend={"traceorder": "grouped"})
 
     fig.show()
