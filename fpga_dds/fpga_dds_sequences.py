@@ -2277,7 +2277,8 @@ def construct_sequencer_sequence(compiled_dds_sequence: List[RFBlock],
 
     # channels relevant for clock pulses (i.e. mapped in DDS sequence)
     trig_vals = np.full(durations.size, 0, dtype=int)
-    trig_vals[durations<=sequencer_mapping.dds_trigger_duration] = 1
+    trig_vals[durations<=sequencer_mapping.dds_trigger_duration] = 1 # raise trigger for at least dds_trigger_duration
+    trig_vals[0] = 1 # make sure the trigger definitely is raised at the start of the sequence (durations < dds_trigger_duration)
     seq[sequencer_mapping.dds_trigger] = build_sequencer_timesteps(durations, trig_vals, digital=True)
     remove_channel(sequencer_channels, sequencer_mapping.dds_trigger)
     seq[sequencer_mapping.pd_setpoint] = build_sequencer_timesteps(durations,
