@@ -46,7 +46,7 @@ class Sequences(ConductorParameter):
                     freq_offs,freq_mult = fnc.calc_sr2_fnc_box_offs(mjm_comb_demod)
 
                     self.cxn.yesr13_fpgadds.write_timestamps(self.value, freq_offs, freq_mult, True, verbose)
-                    #self.cxn.yesr13_fpgadds.trigger() # just for testing...
+                    self.cxn.yesr13_fpgadds.trigger() # to ensure the clock AOM does not cool down (add dds_wait_for_trigger=True in the DDS sequence!)
 
 
             except Exception as e:
