@@ -40,7 +40,7 @@ times = np.array([1e-3])
 print(times)
 
 ### FPGA-DDS programming ###
-pv['fpga_dds.verbose'] = 1 # set this to 0 in defaults!
+pv['fpga_dds.verbose'] = 0 # set this to 0 in defaults!
 
 dds_seqs = []
 virtseqs = []
@@ -48,19 +48,16 @@ for t in times:
     #seq = [ds.RectangularPulse(1e-3, 1, phase=0., frequency=f_pump),
     #       ds.Wait(10e-3),
     #       ds.RectangularPulse(1e-3, 1, phase=np.pi)]
-    seq = [ds.Timestamp(1e-3, 2., frequency=f_pump),
-           ds.Timestamp(1e-3, dds_wait_for_trigger=True),
-           ds.RectangularPulse(10e-3, 2.),
+    seq = [ds.Timestamp(1e-3, 2., frequency=f_pump), # run DDS before sequence (ensure that CLK AOM does not cool down!)
+           ds.Timestamp(6e-3, 2., clk_shutter=False, clk_aom=True, dds_wait_for_trigger=True), # set up sequencer channels
+           ds.RectangularPulse(10e-3, 2., phase=np.pi),
            ds.Dark(5e-3),
            ds.RectangularPulse(7.5e-3, 1.)]
     #seq = [ds.Timestamp(t, np.pi/2, f_pump, 5, dds_amplitude=.8, additional_params={'cleanup': True}),
     #       ds.Timestamp(30e-3)]
     seq = {0: seq}
-    #print(seq)
     dds_seqs.append(jsonpickle.dumps(seq, keys=True))
     #ds.plot_sequence(seq)
-    cmpld,_ = ds.compile_sequence(seq, output_json=False)
-    print(cmpld)
 
     # compile DDS sequence for Sequencer
     #seq_mapping = ds.SequencerMapping(additional_params={'trig': 'LR Demod Sweep@C03'})
@@ -68,11 +65,8 @@ for t in times:
     #                                             'rabi-clock-cleanup-CLKOLPD',  # use last timestep for default values
     #                                             sequencer_mapping=seq_mapping)
     dds_pulses = ds.construct_sequencer_sequence(ds.compile_sequence(seq, False)[0],
-                                                 'rabi-clock-cleanup-CLKOLPD')  # use last timestep for default values
-    #print(dds_pulses)
-    #print(dds_pulses['LR Demod Sweep@C03'])
-    #print(dds_pulses['LR/HR [hi/lo]@C04'])
-    print(dds_pulses['LR AOM Sweep@C02'])
+                                                 'rabi-clock-cleanup-CLKOLPD',  # use last timestep for default values
+                                                 dds_trigger_delay=1.05e-6)
     virtseqs.append({'dds_pulses': dds_pulses})
 
 pv['fpga_dds.sequences'] = dds_seqs
@@ -212,9 +206,9 @@ if __name__ == '__main__':
     #                           os.path.join(settings_dir, 'defaults.py'),
     #                           ]
     
-    #my_experiment = Experiment(
-    #    name='scan',
-    #    parameter_values=pv,
-    #    loop=False,
-    #    )
-    #my_experiment.queue(run_immediately=True)
+    my_experiment = Experiment(
+        name='scan',
+        parameter_values=pv,
+        loop=False,
+        )
+    my_experiment.queue(run_immediately=True)

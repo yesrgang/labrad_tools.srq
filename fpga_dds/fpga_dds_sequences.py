@@ -2232,7 +2232,8 @@ def construct_sequencer_sequence(compiled_dds_sequence: List[RFBlock],
                                  sequencer_defaults_sequence_file: str,
                                  default_timestep_index: int = -1,
                                  sequence_searchpth: str = None,
-                                 sequencer_mapping: SequencerMapping = SequencerMapping()):
+                                 sequencer_mapping: SequencerMapping = SequencerMapping(),
+                                 dds_trigger_delay: float = 0.):
     """
     Constructs a Sequencer sequence JSON string based on the provided DDS sequence in
     combination with the SequencerMapping.
@@ -2247,7 +2248,7 @@ def construct_sequencer_sequence(compiled_dds_sequence: List[RFBlock],
         sequence_searchpth (str): Path to sequence directory in which to search for the default sequence. Defaults to None, which is replaced by the value of the global variable sequence_searchpath (initialized via :func"`set_sequence_searchpath`).
         sequencer_mapping (:class:`SequencerMapping`): Channel mapping for non-DDS signals. Defaults to SequencerMapping() (the default mapping of the required channels).
     Returns:
-        seq_str (str): JSON Sequencer string
+        dds_trigger_delay (float): Delay (in seconds) added to the first Sequencer sequence timestep in order to synchronize the FPGA-DDS output to the experimental control sequence. Defaults to zero.
     """
     compiled_dds_sequence = compiled_dds_sequence[0]  # extract first programmed channel
 
@@ -2268,6 +2269,15 @@ def construct_sequencer_sequence(compiled_dds_sequence: List[RFBlock],
 
     compiled_dds_sequence = compiled_dds_sequence[:-1]  # remove DDS sequencer terminator
 
+    # search for dds_wait_for_trigger -> if it's set to True, start the sequence at the first occurence
+    wait_for_trig = False
+    seq_start_ind = 0
+    for i in range(len(compiled_dds_sequence)):
+        if compiled_dds_sequence[i].dds_wait_for_trigger:
+            seq_start_ind = i
+            break
+    compiled_dds_sequence = compiled_dds_sequence[seq_start_ind:]
+
     # build Sequencer sequence
     seq = {}
     sequencer_channels = list(sequencer_defaults.keys())
@@ -2275,10 +2285,13 @@ def construct_sequencer_sequence(compiled_dds_sequence: List[RFBlock],
     durations = np.diff(durations)  # convert timepoints to durations
     #durations = np.insert(durations, 0, sequencer_mapping.dds_trigger_duration)
 
-    # channels relevant for clock pulses (i.e. mapped in DDS sequence)
+    # set up trigger for FPGA-DDS
     trig_vals = np.full(durations.size, 0, dtype=int)
     trig_vals[durations<=sequencer_mapping.dds_trigger_duration] = 1 # raise trigger for at least dds_trigger_duration
     trig_vals[0] = 1 # make sure the trigger definitely is raised at the start of the sequence (durations < dds_trigger_duration)
+    durations[0] += dds_trigger_delay
+
+    # channels relevant for clock pulses (i.e. mapped in DDS sequence)
     seq[sequencer_mapping.dds_trigger] = build_sequencer_timesteps(durations, trig_vals, digital=True)
     remove_channel(sequencer_channels, sequencer_mapping.dds_trigger)
     seq[sequencer_mapping.pd_setpoint] = build_sequencer_timesteps(durations,
