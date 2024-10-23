@@ -155,11 +155,12 @@ class Client(QtGui.QWidget):
         ymin, ymax = self.figure.get_axes()[0].get_ylim()
         self.figure.clear()
         ax = self.figure.add_subplot(111)
-        ax.imshow(counts, cmap='inferno', origin='lower')
+        im = ax.imshow(counts, cmap='inferno', origin='lower')
         ax.set_xlim(xmin, xmax)
         ax.set_ylim(ymin, ymax)
         ax.contour(norm, colors='r')
         ax.contour(cloud, colors='w')
+        self.figure.colorbar(im)
         self.canvas.draw()
     
     def setupAbsorptionImage(self):
@@ -190,11 +191,12 @@ class Client(QtGui.QWidget):
         ymin, ymax = self.figure.get_axes()[0].get_ylim()
         self.figure.clear()
         ax = self.figure.add_subplot(111)
-        ax.imshow(image, cmap='inferno', origin='lower')
+        im = ax.imshow(image, cmap='inferno', origin='lower')
         ax.set_xlim(xmin, xmax)
         ax.set_ylim(ymin, ymax)
         ax.contour(norm, colors='r')
         ax.contour(cloud, colors='w')
+        self.figure.colorbar(im)
         self.canvas.draw()
         
     def setupAbsorptionBright(self):
@@ -211,21 +213,22 @@ class Client(QtGui.QWidget):
     
     def processAbsorptionBright(self, image_path):
         exec(self.getParameters())
-        h5f = h5py.File(os.path.join(DATADIR, "20210123/ref.mako1.hdf5"), "r")
-        ref_image = np.array(h5f['image'], dtype='float')
-        ref_bright = np.array(h5f['bright'], dtype='float')
-        h5f.close()
+#        h5f = h5py.File(os.path.join(DATADIR, "20210123/ref.mako1.hdf5"), "r")
+#        ref_image = np.array(h5f['image'], dtype='float')
+#        ref_bright = np.array(h5f['bright'], dtype='float')
+#        h5f.close()
 
         h5f = h5py.File(image_path, "r")
-        image = np.array(h5f['image'], dtype='float') - ref_image
-        bright = np.array(h5f['bright'], dtype='float') - ref_bright
+        image = np.array(h5f['image'], dtype='float') #- ref_image
+        bright = np.array(h5f['bright'], dtype='float') #- ref_bright
         h5f.close()
         
         self.figure.clear()
         ax = self.figure.add_subplot(111)
-        ax.imshow(bright, cmap='inferno', origin='lower')
+        im = ax.imshow(bright, cmap='inferno', origin='lower')
         ax.contour(norm, colors='r')
         ax.contour(cloud, colors='w')
+        self.figure.colorbar(im)
         self.canvas.draw()
     
     def displayImage(self):
