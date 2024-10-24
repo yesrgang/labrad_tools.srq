@@ -2565,6 +2565,9 @@ def plot_sequence(seq: List[RFBlock]):
             "dds_digital": dds_digital,
         }
 
+    # shift pd_setpoints (the Sequencer ramps reach this value at the following timestep)
+    plot_data['(0, 0)']['pd_setpoint'] = [0.] + plot_data['(0, 0)']['pd_setpoint'][:-1]
+
     color_i = 0
     colors = px.colors.qualitative.Plotly
     for k, pd in plot_data.items():
@@ -2572,7 +2575,7 @@ def plot_sequence(seq: List[RFBlock]):
             go.Scatter(
                 x=pd["time"],
                 y=pd["pd_setpoint"],
-                line_shape="hv",
+                #line_shape="hv",
                 name="PD Set {}".format(k),
                 fill="tozeroy",
                 legendgroup=k,
