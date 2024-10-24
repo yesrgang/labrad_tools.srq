@@ -33,10 +33,10 @@ pio.renderers.default = "browser"
 # seq = [ds.RectangularPulse(1e-3, 2, phase=0., frequency=10e6),
 #        ds.RectangularPulse(1e-3, 2.1, phase=np.pi/2, frequency=11e6),]
 
-# seq = [ds.SetTransition(ds.Transition(.5, 10e6, 720)),
-#        ds.RectangularPulse(1e-3, 2, phase=0.),
-#        ds.Dark(19e-3),
-#        ds.RectangularPulse(1e-3, 2.1, phase=np.pi/2),]
+seq = [ds.SetTransition(ds.Transition(.5, 10e6, 720)),
+        ds.RectangularPulse(1e-3, 2, phase=0.),
+        ds.Dark(19e-3),
+        [ds.RectangularPulse(1e-3, 4, phase=np.pi/2), ds.RectangularPulse(1e-3, 3, phase=np.pi/2)],]
 
 # seq = [ds.SetTransition(ds.Transition(.5, 10e6, 720)),
 #        ds.BlackmanPulse(1e-3, 2, phase=0.),
@@ -49,10 +49,10 @@ pio.renderers.default = "browser"
 #        ds.Dark(2e-3),
 #        ds.PhaseRamp(10e-3, start_phase=0, end_phase=2*np.pi),]
 
-seq = [ds.SetTransition(ds.Transition(.5, 10e6, 720)),
-        ds.PiPulse(phase=0.),
-        ds.Dark(19e-3),
-        ds.Pi2Pulse(phase=np.pi/2),]
+# seq = [ds.SetTransition(ds.Transition(.5, 10e6, 720)),
+#         ds.PiPulse(phase=0.),
+#         ds.Dark(19e-3),
+#         ds.Pi2Pulse(phase=np.pi/2),]
 
 # seq = [ds.SetTransition(ds.Transition(.5, 10e6, 720)),
 #         ds.PiPulse(phase=np.pi/2),
