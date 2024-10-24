@@ -2565,12 +2565,13 @@ def plot_sequence(seq: List[RFBlock]):
             "dds_digital": dds_digital,
         }
 
-    # shift pd_setpoints (the Sequencer ramps reach this value at the following timestep)
-    plot_data['(0, 0)']['pd_setpoint'] = [0.] + plot_data['(0, 0)']['pd_setpoint'][:-1]
+    #plot_data['(0, 0)']['pd_setpoint'] = [0.] + plot_data['(0, 0)']['pd_setpoint'][:-1]
 
     color_i = 0
     colors = px.colors.qualitative.Plotly
     for k, pd in plot_data.items():
+        # shift pd_setpoints (the Sequencer ramps reach this value at the following timestep)
+        pd['pd_setpoint'] = [0.] + pd['pd_setpoint'][:-1]
         fig.add_trace(
             go.Scatter(
                 x=pd["time"],
