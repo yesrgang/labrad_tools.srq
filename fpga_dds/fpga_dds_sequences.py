@@ -413,7 +413,7 @@ class Dark(RFBlock):
             val += ", dds_digital_out={}".format(self.dds_digital_out)
         return val + ")"
 
-    def compile(self, state: Optional[SequenceState] = None, next_pd_setpoint: Optional[float] = None) -> Timestamp:
+    def compile(self, state: Optional[SequenceState] = None, next_pd_setpoint: Optional[float] = None, next_pd_selection: Optional[bool] = None) -> Timestamp:
         validate_parameters(self.duration, None, self.phase, self.frequency, self.additional_params, self.dds_amplitude)
 
         if self.duration > 18e-3:  # close the shutter
@@ -432,6 +432,7 @@ class Dark(RFBlock):
                               clk_shutter=False,
                               clk_aom=False),  # switch AOM back on
                     Timestamp(6e-3,
+                              pd_selection=next_pd_selection,
                               clk_shutter=True,
                               clk_aom=True)]  # switch AOM back off and open shutter again
         else:  # keep shutter in previous state
@@ -439,7 +440,7 @@ class Dark(RFBlock):
                               next_pd_setpoint,
                               self.phase,
                               self.frequency,
-                              None, # PD selection
+                              next_pd_selection,
                               None, # clk shutter
                               True, # clk AOM
                               self.additional_params,
@@ -1986,7 +1987,7 @@ class Repeat(RFBlock):
 
 
 def compile_sequence(
-    sequence: List[RFBlock], output_json: bool = True
+    sequence: List[RFBlock], output_json: bool = True, pd_conversion_fct=None
 ) -> List[RFBlock] | str:
     """
     compile_sequence(sequence)
@@ -2002,6 +2003,7 @@ def compile_sequence(
     Args:
         sequence (dictionary of lists of :class:`RFBlock`): The sequence to compile. Keys should be channels, values should be list of :class:`RFBlock`.
         output_json (bool): Outputs a JSON-formatted string of timestamos that can be sent to :class:`synthesizer.synthesizer_server` if True, or a list of :class:`RFBlock` if False. Defaults to True.
+        pd_conversion_fct (function): A function that converts the PD setpoint values before the atoms (the default values used in the sequence) to the setpoints after the atoms. This function is called on the compiled timestamps if pd_selection==True. Defaults to None, in which case no convertion is performed.
 
     Returns
         ((List[RFBlock] | str), Dict[int : List[float]]): A tuple containing the compiled sequence and a list of lists the durations of the sequences for each channel
@@ -2101,16 +2103,16 @@ def compile_sequence(
                         block.duration = dds_settings.T_MIN
                         compiled_channel.append(block)
                     block.dds_digital_out = state.dds_digital_out
-                elif isinstance(block, AdjustNextDuration):
-                    compiled_channel.append(block)
+                #elif isinstance(block, AdjustNextDuration):
+                #    compiled_channel.append(block)
                 else:
                     raise TypeError("Cannot add a {} to the sequence".format(block))
             else:  # process composite pulse sequence
                 if isinstance(head, Dark) and len(stack) > 0: # ramp PD setpoint to following value during Dark
                     if not isinstance(stack[-1], list):
-                        blocks = head.compile(state, stack[-1].pd_setpoint)
+                        blocks = head.compile(state, stack[-1].pd_setpoint, stack[-1].pd_selection)
                     else: # list in next stack element has not been revesed yet, so use its first element
-                        blocks = head.compile(state, stack[-1][0].pd_setpoint)
+                        blocks = head.compile(state, stack[-1][0].pd_setpoint, stack[-1][0].pd_selection)
                 else:
                     blocks = head.compile(state)
                 blocks.reverse()  # ensure same order as stack
@@ -2145,6 +2147,14 @@ def compile_sequence(
                     dds_digital_out=state.dds_digital_out,
                 )
             )
+
+        # convert PD setpoints from before at after the atoms
+        if pd_conversion_fct is not None:
+            for ts in compiled_channel:
+                if ts.pd_selection:
+                    ts.pd_setpoint = pd_conversion_fct(ts.pd_setpoint)
+
+        # add termination element (tells the FPGA to stop iterating the timestamps)
         terminator = Timestamp(0, 0, 0, 0, dds_amplitude=0, dds_digital_out=[False] * dds_settings.N_DIGITAL)
         terminator.phase_update = 0
         compiled_channel.append(terminator)
@@ -2485,7 +2495,7 @@ def str2timetraces(json_str):
     return time_traces
 
 
-def plot_sequence(seq: List[RFBlock]):
+def plot_sequence(seq: List[RFBlock], pd_conversion_fct=None):
     """
     plot_sequence(seq)
 
@@ -2493,12 +2503,13 @@ def plot_sequence(seq: List[RFBlock]):
 
     Args:
         seq ([RFBlock]): The sequence to plot
+        pd_conversion_fct (function): A function that converts the PD setpoint values before the atoms (the default values used in the sequence) to the setpoints after the atoms. This function is called on the compiled timestamps if pd_selection==True. Defaults to None, in which case no convertion is performed.
     """
     import plotly.graph_objects as go
     import plotly.express as px
     from plotly.subplots import make_subplots
 
-    compiled, durations = compile_sequence(seq, output_json=False)
+    compiled, durations = compile_sequence(seq, output_json=False, pd_conversion_fct=pd_conversion_fct)
 
     fig = make_subplots(
         rows=7, #+ dds_settings.N_DIGITAL,
@@ -2564,8 +2575,6 @@ def plot_sequence(seq: List[RFBlock]):
             "dds_amplitude": dds_ampls,
             "dds_digital": dds_digital,
         }
-
-    #plot_data['(0, 0)']['pd_setpoint'] = [0.] + plot_data['(0, 0)']['pd_setpoint'][:-1]
 
     color_i = 0
     colors = px.colors.qualitative.Plotly
