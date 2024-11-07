@@ -138,6 +138,9 @@ class Client(QtGui.QWidget):
         bright = np.array(h5f['bright'], dtype='float') #- ref_bright
         h5f.close()
 
+        image1 = image
+        bright1 = bright
+
         bright *= image[norm].mean() / bright[norm].mean()
 
         od = np.zeros_like(image)
@@ -146,10 +149,19 @@ class Client(QtGui.QWidget):
         od[i] = np.log(bright[i] / image[i])
         diff[i] = bright[i] - image[i]
         counts = od * PIXEL_SIZE**2 / CROSS_SECTION + diff * GAIN / (np.pi * LINEWIDTH * PULSE_LENGTH)
-
+        
         tot = counts[cloud].sum()
 
-        self.outputBox.setText("Total Counts: {:.2e}\n".format(tot))
+        od1 = np.zeros_like(image1)
+        diff1 = np.zeros_like(image1)
+        i = (image1 > 0) & (bright1 > 0)
+        od1[i] = np.log(bright1[i] / image1 [i])
+        diff1[i] = bright1[i] - image1[i]
+        counts1 = od1 * PIXEL_SIZE**2 / CROSS_SECTION + diff1 * GAIN / (np.pi * LINEWIDTH * PULSE_LENGTH)
+
+        tot1 = counts[cloud].sum()
+
+        self.outputBox.setText("Total Counts: {0:.3e}\nTotal pixel sum: {1:.3e}".format(tot, tot1))
 
         xmin, xmax = self.figure.get_axes()[0].get_xlim()
         ymin, ymax = self.figure.get_axes()[0].get_ylim()
