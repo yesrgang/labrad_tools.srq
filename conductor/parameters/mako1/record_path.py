@@ -14,6 +14,7 @@ class Parameter(ConductorParameter):
         "image-odt-tmp": "normal",
         "image-odt-tens4": "normal",
         "image-odt-tens4-tmp": "normal",
+        "image-delay": "normal",
         }
 
    # data_filename = '/home/srgang/srqdata/data/{}/{}.mako1.hdf5'
