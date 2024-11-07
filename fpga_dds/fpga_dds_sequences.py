@@ -360,39 +360,93 @@ class Timestamp(RFBlock):
         return super().compile(state)
 
 
-def Dark(duration: float,
-         pd_setpoint: Optional[float] = None,
-         phase: Optional[float] = None,
-         frequency: Optional[float] = None,
-         pd_selection: Optional[int] = None,
-         additional_params: Optional[dict] = None,
-         dds_amplitude: Optional[float] = None,
-         dds_wait_for_trigger: Optional[bool] = False,
-         dds_digital_out: Optional[dict] = {},
-         dds_absolute_phase: Optional[bool] = False,
-         ) -> List[RFBlock]:
+class Dark(RFBlock):
     """
-    Returns a list of Timestamps implementing a dark time. Initially, the AOM is swithced off, and if the duration is long enough also the shutter is closed and the AOM is re-enabled. At the end of the dark time, the shutter is opened again and the AOM is switched back off. -> Don't place multiple Dark segments in series!
-
-    Args:
-        duration (float): The duration of the timestamp. If the duration is zero, the parameters override ommited parameters in the next Timestamp.
-        pd_setpoint (float, optional): Clock PD setpoint (the value corresponds to the PD before the atoms and may be converted to the one after the atoms, depending on the value of selected_pd)
-        phase (float, optional): The phase of the tone in radians. Defaults to None, in which case the previous phase is maintained.
-        frequency (float, optional): The frequency of the tone in Hertz. Defaults to None, in which case the previous frequency is maintained.
-        pd_selection (bool, optional): Use PD before/after the chamber as input for the intensity servo
-        additional_params (dict, optional): Additional Sequencer channels ({"<ch_name>": <value>}, with <ch_name> being the same as the onces referenced in :class:'SequencerMapping)
-        dds_amplitude (float, optional): The amplitude of the tone relative to full scale. Defaults to None, in which case the previous amplitude is maintained.
-        dds_wait_for_trigger (bool, optional): Whether to wait for a trigger to start the timestamp. Defaults to False.
-        dds_digital_out ({int: bool}, optional): A dictionary with keys (integers between 0 and 6) corresponding to the indices of digital outputs to set and boolean values corresponding to the desired state of the output. If a key is not present, the corresponding output is unchanged. Only used for the first channel. Defaults to {}.
-        dds_absolute_phase (bool, optional): If true, sets the phase to :code:`phase` radians at the beginning of the timestamp. Otherwise offsets the phase to :code:`phase` radians relative to a reference clock. If True, :code:`phase` must not be None. Defaults to False.
+    A composite "pulse" during which atoms are not illuminated.
+    The clock AOM turns off and the clock shutter closes (AOM turns back on) if the dark time is sufficiently large.
+    It is also used to ramp the PD setpoint to the value of the following :class:`RFBlock` (c.f. :func:`compile_sequence`) and stabilize the servo while/if the shutter is closed (pd_selection=False during that time).
     """
 
-    if duration > 18e-3:  # close the shutter
-        return [Timestamp(6e-3, pd_setpoint, phase, frequency, pd_selection, False, True, additional_params, dds_amplitude, dds_wait_for_trigger, dds_digital_out, dds_absolute_phase),
-                Timestamp(duration-12e-3, clk_shutter=False, clk_aom=False),  # switch AOM back on
-                Timestamp(6e-3, clk_shutter=True, clk_aom=True)]  # switch AOM back off and open shutter again
-    else:  # keep shutter in previous state
-        return [Timestamp(duration, pd_setpoint, phase, frequency, pd_selection, None, True, additional_params, dds_amplitude, dds_wait_for_trigger, dds_digital_out, dds_absolute_phase)]
+    atomic = False
+
+    def __init__(
+        self,
+        duration: float,
+        phase: Optional[float] = None,
+        frequency: Optional[float] = None,
+        additional_params: Optional[dict] = None,
+        dds_amplitude: Optional[float] = None,
+        dds_wait_for_trigger: Optional[bool] = False,
+        dds_digital_out: Optional[dict] = {},
+    ) -> None:
+        """
+        Args:
+            duration (float): The duration of the timestamp. If the duration is zero, the parameters override ommited parameters in the next Timestamp.
+            phase (float, optional): The phase of the tone in radians. Defaults to None, in which case the previous phase is maintained.
+            frequency (float, optional): The frequency of the tone in Hertz. Defaults to None, in which case the previous frequency is maintained.
+            additional_params (dict, optional): Additional Sequencer channels ({"<ch_name>": <value>}, with <ch_name> being the same as the onces referenced in :class:'SequencerMapping)
+            dds_amplitude (float, optional): The amplitude of the tone relative to full scale. Defaults to None, in which case the previous amplitude is maintained.
+            dds_wait_for_trigger (bool, optional): Whether to wait for a trigger to start the dark time. Defaults to False.
+            dds_digital_out ({int: bool}, optional): A dictionary with keys (integers between 0 and 6) corresponding to the indices of digital outputs to set and boolean values corresponding to the desired state of the output. If a key is not present, the corresponding output is unchanged. Only used for the first channel. Defaults to {}.
+        """
+        self.duration = set_float(duration)
+        self.phase = set_float(phase)
+        self.frequency = set_float(frequency)
+        self.additional_params = additional_params
+        self.dds_amplitude = set_float(dds_amplitude)
+        self.dds_wait_for_trigger = dds_wait_for_trigger
+        self.dds_digital_out = dds_digital_out
+
+    def __repr__(self) -> str:
+        val = "Dark({}".format(self.duration)
+        if self.phase is not None:
+            val += ", phase={}".format(self.phase)
+        if self.frequency is not None:
+            val += ", frequency={}".format(self.frequency)
+        if self.additional_params is not None:
+            val += ", additional_params={}".format(self.additional_params)
+        if self.dds_amplitude is not None:
+            val += ", dds_amplitude={}".format(self.dds_amplitude)
+        if self.dds_wait_for_trigger:
+            val += ", dds_wait_for_trigger={}".format(self.dds_wait_for_trigger)
+        if len(self.dds_digital_out) > 0:
+            val += ", dds_digital_out={}".format(self.dds_digital_out)
+        return val + ")"
+
+    def compile(self, state: Optional[SequenceState] = None, next_pd_setpoint: Optional[float] = None, next_pd_selection: Optional[bool] = None) -> Timestamp:
+        validate_parameters(self.duration, None, self.phase, self.frequency, self.additional_params, self.dds_amplitude)
+
+        if self.duration > 18e-3:  # close the shutter
+            return [Timestamp(6e-3,
+                              next_pd_setpoint,
+                              self.phase,
+                              self.frequency,
+                              False, # PD selection
+                              False, # clk shutter
+                              True, # clk AOM
+                              self.additional_params,
+                              self.dds_amplitude,
+                              self.dds_wait_for_trigger,
+                              self.dds_digital_out),
+                    Timestamp(self.duration-12e-3,
+                              clk_shutter=False,
+                              clk_aom=False),  # switch AOM back on
+                    Timestamp(6e-3,
+                              pd_selection=next_pd_selection,
+                              clk_shutter=True,
+                              clk_aom=True)]  # switch AOM back off and open shutter again
+        else:  # keep shutter in previous state
+            return [Timestamp(self.duration,
+                              next_pd_setpoint,
+                              self.phase,
+                              self.frequency,
+                              next_pd_selection,
+                              None, # clk shutter
+                              True, # clk AOM
+                              self.additional_params,
+                              self.dds_amplitude,
+                              self.dds_wait_for_trigger,
+                              self.dds_digital_out)]
 
 
 class SyncPoint(RFBlock):
@@ -1933,7 +1987,7 @@ class Repeat(RFBlock):
 
 
 def compile_sequence(
-    sequence: List[RFBlock], output_json: bool = True
+    sequence: List[RFBlock], output_json: bool = True, pd_conversion_fct=None
 ) -> List[RFBlock] | str:
     """
     compile_sequence(sequence)
@@ -1949,6 +2003,7 @@ def compile_sequence(
     Args:
         sequence (dictionary of lists of :class:`RFBlock`): The sequence to compile. Keys should be channels, values should be list of :class:`RFBlock`.
         output_json (bool): Outputs a JSON-formatted string of timestamos that can be sent to :class:`synthesizer.synthesizer_server` if True, or a list of :class:`RFBlock` if False. Defaults to True.
+        pd_conversion_fct (function): A function that converts the PD setpoint values before the atoms (the default values used in the sequence) to the setpoints after the atoms. This function is called on the compiled timestamps if pd_selection==True. Defaults to None, in which case no convertion is performed.
 
     Returns
         ((List[RFBlock] | str), Dict[int : List[float]]): A tuple containing the compiled sequence and a list of lists the durations of the sequences for each channel
@@ -1968,7 +2023,7 @@ def compile_sequence(
                 head.reverse()  # ensure same order as stack
                 stack += head
                 continue
-            if hasattr(head, "atomic") and head.atomic:  # process single pulse
+            if hasattr(head, "atomic") and head.atomic:  # process single non-composite pulse
                 block = head.compile(state)
                 #if (
                 #    len(compiled_channel) > 0
@@ -2048,12 +2103,18 @@ def compile_sequence(
                         block.duration = dds_settings.T_MIN
                         compiled_channel.append(block)
                     block.dds_digital_out = state.dds_digital_out
-                elif isinstance(block, AdjustNextDuration):
-                    compiled_channel.append(block)
+                #elif isinstance(block, AdjustNextDuration):
+                #    compiled_channel.append(block)
                 else:
                     raise TypeError("Cannot add a {} to the sequence".format(block))
             else:  # process composite pulse sequence
-                blocks = head.compile(state)
+                if isinstance(head, Dark) and len(stack) > 0: # ramp PD setpoint to following value during Dark
+                    if not isinstance(stack[-1], list):
+                        blocks = head.compile(state, stack[-1].pd_setpoint, stack[-1].pd_selection)
+                    else: # list in next stack element has not been revesed yet, so use its first element
+                        blocks = head.compile(state, stack[-1][0].pd_setpoint, stack[-1][0].pd_selection)
+                else:
+                    blocks = head.compile(state)
                 blocks.reverse()  # ensure same order as stack
                 stack.extend(blocks)
         durations = []
@@ -2086,6 +2147,14 @@ def compile_sequence(
                     dds_digital_out=state.dds_digital_out,
                 )
             )
+
+        # convert PD setpoints from before at after the atoms
+        if pd_conversion_fct is not None:
+            for ts in compiled_channel:
+                if ts.pd_selection:
+                    ts.pd_setpoint = pd_conversion_fct(ts.pd_setpoint)
+
+        # add termination element (tells the FPGA to stop iterating the timestamps)
         terminator = Timestamp(0, 0, 0, 0, dds_amplitude=0, dds_digital_out=[False] * dds_settings.N_DIGITAL)
         terminator.phase_update = 0
         compiled_channel.append(terminator)
@@ -2426,7 +2495,7 @@ def str2timetraces(json_str):
     return time_traces
 
 
-def plot_sequence(seq: List[RFBlock]):
+def plot_sequence(seq: List[RFBlock], pd_conversion_fct=None):
     """
     plot_sequence(seq)
 
@@ -2434,12 +2503,13 @@ def plot_sequence(seq: List[RFBlock]):
 
     Args:
         seq ([RFBlock]): The sequence to plot
+        pd_conversion_fct (function): A function that converts the PD setpoint values before the atoms (the default values used in the sequence) to the setpoints after the atoms. This function is called on the compiled timestamps if pd_selection==True. Defaults to None, in which case no convertion is performed.
     """
     import plotly.graph_objects as go
     import plotly.express as px
     from plotly.subplots import make_subplots
 
-    compiled, durations = compile_sequence(seq, output_json=False)
+    compiled, durations = compile_sequence(seq, output_json=False, pd_conversion_fct=pd_conversion_fct)
 
     fig = make_subplots(
         rows=7, #+ dds_settings.N_DIGITAL,
@@ -2509,11 +2579,13 @@ def plot_sequence(seq: List[RFBlock]):
     color_i = 0
     colors = px.colors.qualitative.Plotly
     for k, pd in plot_data.items():
+        # shift pd_setpoints (the Sequencer ramps reach this value at the following timestep)
+        pd['pd_setpoint'] = [0.] + pd['pd_setpoint'][:-1]
         fig.add_trace(
             go.Scatter(
                 x=pd["time"],
                 y=pd["pd_setpoint"],
-                line_shape="hv",
+                #line_shape="hv",
                 name="PD Set {}".format(k),
                 fill="tozeroy",
                 legendgroup=k,
