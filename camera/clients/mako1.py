@@ -156,10 +156,10 @@ class Client(QtGui.QWidget):
         diff1 = np.zeros_like(image1)
         i = (image1 > 0) & (bright1 > 0)
         od1[i] = np.log(bright1[i] / image1 [i])
-        diff1[i] = bright1[i] - image1[i]
-        counts1 = od1 * PIXEL_SIZE**2 / CROSS_SECTION + diff1 * GAIN / (np.pi * LINEWIDTH * PULSE_LENGTH)
+        diff1[i] = image[i] - bright1[i]
+        
 
-        tot1 = counts[cloud].sum()
+        tot1 = diff1[cloud].sum()   # photon count from imaging 
 
         self.outputBox.setText("Total Counts: {0:.3e}\nTotal pixel sum: {1:.3e}".format(tot, tot1))
 
