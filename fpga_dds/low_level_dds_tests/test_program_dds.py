@@ -53,7 +53,8 @@ sock.settimeout(timeout)
 
 # constant output with the following parameters
 #ftw = 0x155555555  # 36-bit FTW
-ftw = 0x111111111  # 36-bit FTW
+#ftw = 0x111111111  # 36-bit FTW (10MHz)
+ftw = 0x444444444  # 36-bit FTW (40MHz)
 #ftw = 0x444444444  # 36-bit FTW
 atw = 0xff  # 8-bit ATW
 ptw = 0x0000 # 16-bit PTW
