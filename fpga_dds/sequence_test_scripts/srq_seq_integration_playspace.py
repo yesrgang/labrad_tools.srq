@@ -30,13 +30,16 @@ pio.renderers.default = "browser"
 #        ds.RectangularPulse(1e-3, 1, phase=0., frequency=10e6),]
 #------------------------------------------------------------
 
+def pd_conv(pd_val):
+  return 2*pd_val
+
 # seq = [ds.RectangularPulse(1e-3, 2, phase=0., frequency=10e6),
 #        ds.RectangularPulse(1e-3, 2.1, phase=np.pi/2, frequency=11e6),]
 
-# seq = [ds.SetTransition(ds.Transition(.5, 10e6, 720)),
-#        ds.RectangularPulse(1e-3, 2, phase=0.),
-#        ds.Dark(19e-3),
-#        ds.RectangularPulse(1e-3, 2.1, phase=np.pi/2),]
+seq = [ds.SetTransition(ds.Transition(.5, 10e6, 720)),
+        ds.RectangularPulse(1e-3, 1, phase=0., pd_selection=True),
+        ds.Dark(19e-3),
+        [ds.RectangularPulse(1e-3, 4, phase=np.pi/2, pd_selection=True), ds.RectangularPulse(1e-3, 3, phase=np.pi/2)],]
 
 # seq = [ds.SetTransition(ds.Transition(.5, 10e6, 720)),
 #        ds.BlackmanPulse(1e-3, 2, phase=0.),
@@ -49,10 +52,10 @@ pio.renderers.default = "browser"
 #        ds.Dark(2e-3),
 #        ds.PhaseRamp(10e-3, start_phase=0, end_phase=2*np.pi),]
 
-seq = [ds.SetTransition(ds.Transition(.5, 10e6, 720)),
-        ds.PiPulse(phase=0.),
-        ds.Dark(19e-3),
-        ds.Pi2Pulse(phase=np.pi/2),]
+# seq = [ds.SetTransition(ds.Transition(.5, 10e6, 720)),
+#         ds.PiPulse(phase=0.),
+#         ds.Dark(19e-3),
+#         ds.Pi2Pulse(phase=np.pi/2),]
 
 # seq = [ds.SetTransition(ds.Transition(.5, 10e6, 720)),
 #         ds.PiPulse(phase=np.pi/2),
@@ -84,12 +87,13 @@ seq = [ds.SetTransition(ds.Transition(.5, 10e6, 720)),
 # associate sequence to a channel
 seq = {0: seq}
 
-ds.plot_sequence(seq) # plot sequence with plotly in browser
+ds.plot_sequence(seq, pd_conv) # plot sequence with plotly in browser
+# ds.plot_sequence(seq) # plot sequence with plotly in browser (ignore pd_selection)
 
 print('start compilation')
 # compiled_str = ds.compile_sequence(seq, output_json=True)
 # print(compiled_str)
-compiled, durations = ds.compile_sequence(seq, output_json=False)
+compiled, durations = ds.compile_sequence(seq, output_json=False, pd_conversion_fct=pd_conv)
 
 ds.set_sequence_searchpath('./sequences')
 sequencer_mapping = ds.SequencerMapping(additional_params={'cleanup': 'HR Abs. AOM@A02'})

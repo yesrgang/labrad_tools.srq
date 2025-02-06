@@ -1,5 +1,6 @@
 import socket
 from time import sleep
+import sys
 
 def trigger(sock, dest, print_only=False):
     tosend = bytearray.fromhex(f"A200")
@@ -51,22 +52,14 @@ dest = (host, int(port))
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
 sock.settimeout(timeout)
 
+Nbits = 36
+Fmax = 150e6
+
 # constant output with the following parameters
-#ftw = 0x155555555  # 36-bit FTW
-#ftw = 0x111111111  # 36-bit FTW (10MHz)
-#ftw = 0x333333333  # 36-bit FTW (30MHz)
-ftw = 0x444444444  # 36-bit FTW (40MHz)
-#ftw = 0xAAAAAAAAB  # 36-bit FTW (~100MHz)
-#ftw = 0xAC5F92C60  # 36-bit FTW (~101MHz)
-#ftw = 0x99999999A  # 36-bit FTW (90MHz)
-#ftw = 0xBBBBBBBBC  # 36-bit FTW (110MHz)
-#ftw = 0xCCCCCCCCD  # 36-bit FTW (120MHz)
-#ftw = 0x444444444  # 36-bit FTW
+ftw = int(round(2**Nbits * float(sys.argv[1])/Fmax))
 atw = 0xff  # 8-bit ATW
 ptw = 0x0000 # 16-bit PTW
 
-Nbits = 36
-Fmax = 150e6
 print(f'freq: {ftw/(2**Nbits)*Fmax}')
 
 turn_ch1_on(ftw, atw, ptw, sock, dest,print_only=False)
