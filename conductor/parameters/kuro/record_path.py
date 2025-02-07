@@ -6,7 +6,7 @@ from conductor.parameter import ConductorParameter
 
 class Parameter(ConductorParameter):
     autostart = True
-    priority = 1
+    priority = 19
 #    call_in_thread = True
     
 #    data_filename = '/home/srgang/srqdata/data/{}/{}.kuro.hdf5'
@@ -43,7 +43,8 @@ class Parameter(ConductorParameter):
         else:
             sequence_value = sequence.value
 
-        for sub_sequence in sequence_value:
-            if 'princeton' in sub_sequence:
-                with open(os.path.join(self.watchdir, 'destination.txt'), 'w') as f:
-                    f.write(self.value)
+        if sequence_value is not None:
+            for sub_sequence in sequence_value:
+                if 'princeton' in sub_sequence:
+                    with open(os.path.join(self.watchdir, 'destination.txt'), 'w') as f:
+                        f.write(self.value)
