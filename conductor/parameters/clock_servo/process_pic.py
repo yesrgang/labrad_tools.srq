@@ -270,7 +270,7 @@ if __name__ == '__main__':
       raise Exception('File \'{:s}\' does not exist!'.format(picpath))
     sleep_counter += sleep_duration
     time.sleep(sleep_duration)
-  time.sleep(10e-3) # os.path seems to see the file ealrier than h5py...
+  time.sleep(500e-3) # os.path seems to see the file ealrier than h5py...
   ef,ntot = process_pic(picpath, (int(sys.argv[2]), int(sys.argv[3])))
   print('{:.6f} {:.3f}'.format(ef, ntot))
 
