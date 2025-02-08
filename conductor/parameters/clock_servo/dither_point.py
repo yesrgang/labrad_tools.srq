@@ -54,6 +54,7 @@ class DitherPoint(ConductorParameter):
 
     def update(self):
         if self.value is not None:
+            print('dither point updating!')
             name, side = self.value
             
             ditherer = self._get_lock(name)
@@ -63,10 +64,12 @@ class DitherPoint(ConductorParameter):
             
             control_loop = self.server._get_parameter('clock_servo.feedback_point')._get_lock(name)
             output = control_loop.output + ditherer.output
+            print('output', output)
             request = {
                 'si21.probe_detuning': control_loop.output + ditherer.output,
                 'si21.cleanup_detuning': control_loop.output,
                 'clock_servo.dither_log': self.value,
+                'ad9914_clock_dds.dds_prog_modulus_freq': control_loop.output + ditherer.output,
                 }
             self.server._set_parameter_values(request)
         

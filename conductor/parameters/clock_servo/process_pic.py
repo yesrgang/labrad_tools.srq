@@ -263,14 +263,26 @@ if __name__ == '__main__':
   #print(sys.argv[2])
   #print(sys.argv[3])
   picpath = os.path.join(DATADIR, sys.argv[1])
+
+  sleep_duration = 1e-3 # (in s)
+  timeout = 4. # (in ~s)
+
+  # wait until file is created
   sleep_counter = 0
-  sleep_duration = 10e-6 # (in s)
   while not os.path.isfile(picpath): # wait for pic to be saved...
-    if sleep_counter >= 1.: # timeout (~in s)
-      raise Exception('File \'{:s}\' does not exist!'.format(picpath))
+    if sleep_counter >= timeout:
+      raise Exception('File \'{:s}\' does not exist! (yet?)'.format(picpath))
     sleep_counter += sleep_duration
     time.sleep(sleep_duration)
-  time.sleep(500e-3) # os.path seems to see the file ealrier than h5py...
-  ef,ntot = process_pic(picpath, (int(sys.argv[2]), int(sys.argv[3])))
+  
+  # wait until file contents are ready (usual Kuro picture size: ~3MB)
+  sleep_counter = 0
+  while os.path.getsize(picpath) < 2.8e6:
+    if sleep_counter >= timeout:
+      raise Exception('File \'{:s}\' contents are not ready (file too small)!'.format(picpath))
+    sleep_counter += sleep_duration
+    time.sleep(sleep_duration)
+
+  ef,ntot = process_pic(picpath, (int(sys.argv[2]), int(sys.argv[3])), eval_size=400, cloud_size=40)
   print('{:.6f} {:.3f}'.format(ef, ntot))
 

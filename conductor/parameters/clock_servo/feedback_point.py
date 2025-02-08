@@ -44,21 +44,8 @@ class FeedbackPoint(ConductorParameter):
         else:
             return self.locks[lock]
 
-    def update(self):
+    def update(self): # usually triggered by dither_log
         experiment_name = self.server.experiment.get('name')
-
-        #shot_number = self.server.experiment.get('shot_number')
-        #if shot_number >= 3: # kuro files may not be updated prior to shot 3
-        #    pic_path = self.get_prev_pic_path()
-        #    print(pic_path)
-        #    print(self.process_pic(pic_path))
-        #print('update feedback point!')
-        #print('experiment_name', experiment_name)
-        #print('shot_number', shot_number)
-
-        print('update feedback point!')
-        print('self.value', self.value)
-
         if (self.value is not None) and (experiment_name is not None):
             name, side, shot = self.value
             control_loop = self._get_lock(name)
@@ -76,14 +63,10 @@ class FeedbackPoint(ConductorParameter):
             #tot = response['blue_pmt']['tot_fit']
 
             shot_number = self.server.experiment.get('shot_number')
-            print('update feedback point!')
-            print(shot_number)
             if shot_number >= 3: # kuro files may not be updated prior to shot 3
                 pic_path = self.get_prev_pic_path()
-                print(pic_path)
                 frac, ntot = self.process_pic(pic_path)
 
-                print('update feedback point!')
                 print('eval results for shot {:d}'.format(shot_number))
                 print('EF:   {:.3f}'.format(frac))
                 print('Ntot: {:.0f}'.format(ntot))
