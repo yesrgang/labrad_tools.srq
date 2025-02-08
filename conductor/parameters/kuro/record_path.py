@@ -6,7 +6,7 @@ from conductor.parameter import ConductorParameter
 
 class Parameter(ConductorParameter):
     autostart = True
-    priority = 19
+    priority = 1
 #    call_in_thread = True
     
 #    data_filename = '/home/srgang/srqdata/data/{}/{}.kuro.hdf5'
