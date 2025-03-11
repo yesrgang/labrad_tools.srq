@@ -19,9 +19,9 @@ class DitherLog(ConductorParameter):
             request = {'clock_servo.feedback_point': feedback_point_value}
             self.server._set_parameter_values(request)
         
-        if self.server._get_parameter_value('blue_pmt.recorder'):
-            self.value_log.append(self.value)
-            self.shot_number_log.append(self.server.experiment.get('shot_number'))
+        #if self.server._get_parameter_value('blue_pmt.recorder'):
+        #    self.value_log.append(self.value)
+        #    self.shot_number_log.append(self.server.experiment.get('shot_number'))
 
 Parameter = DitherLog
 

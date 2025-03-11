@@ -17,6 +17,7 @@ class Parameter(ConductorParameter):
         "image-lattice": "absorption",
         "image-odt-lattice": "absorption",
         "image": "absorption",
+        "image-fluor": "absoprtion",
         "image-tmp": "absorption",
 #        "image-princeton": "absorption",
         "image-princeton-pco": "absorption",
@@ -24,7 +25,6 @@ class Parameter(ConductorParameter):
         "image-odt-tens4": "absorption",
 #        "image-princeton-single": "absorption",
 #        "image-princeton-single-repump": "fluorescence",
-
         }
 
     data_filename = 'Q:\\data\\{}\\{}.pixelfly.hdf5'

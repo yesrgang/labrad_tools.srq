@@ -24,7 +24,8 @@ class DDS_Prog_Modulus_Freq(ConductorParameter):
                 return
 
             out_freq = fnc.calc_sr2_fnc_box_ref_freq(mjm_comb_demod, self.value)
-            print('AD9914 Programmable Modulus frequency:', out_freq)
+            print('AD9914 Programmable Modulus input: {:.3f}'.format(self.value))
+            print('AD9914 Programmable Modulus frequency: {:.3f}'.format(out_freq))
             self.cxn.yesr14_ad9914.save_programmable_modulus_frequency(out_freq)
 
  

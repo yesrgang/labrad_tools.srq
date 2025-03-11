@@ -54,6 +54,7 @@ class DitherPoint(ConductorParameter):
 
     def update(self):
         if self.value is not None:
+            print('dither point updating!')
             name, side = self.value
             
             ditherer = self._get_lock(name)
@@ -63,25 +64,30 @@ class DitherPoint(ConductorParameter):
             
             control_loop = self.server._get_parameter('clock_servo.feedback_point')._get_lock(name)
             output = control_loop.output + ditherer.output
+            print('output', output)
+            print('loop.output', control_loop.output)
+            print('ditherer.output', ditherer.output)
             request = {
-                'si21.probe_detuning': control_loop.output + ditherer.output,
-                'si21.cleanup_detuning': control_loop.output,
+                #'si21.probe_detuning': control_loop.output + ditherer.output,
+                #'si21.cleanup_detuning': control_loop.output,
                 'clock_servo.dither_log': self.value,
+                #'ad9914_clock_dds.dds_prog_modulus_freq': control_loop.output + ditherer.output,
+                'ad9914_clock_dds.dds_frequency_0': control_loop.output + ditherer.output,
                 }
             self.server._set_parameter_values(request)
         
-#        if self.value_log[-2] is not None:
-#            value = self.value_log[-2]
-#            lock, side = value
-#            print "feeding_back", lock, side
-#            shot_number = self.shot_number_log[-2]
-#            feedback_point_value = [lock, side, shot_number]
-#            request = {'clock_servo.feedback_point': feedback_point_value}
-#            self.server._set_parameter_values(request)
-#        
-#        if self.server._get_parameter_value('blue_pmt.recorder'):
-#            self.value_log.append(self.value)
-#            self.shot_number_log.append(self.server.experiment.get('shot_number'))
+        if self.value_log[-2] is not None:
+            value = self.value_log[-2]
+            lock, side = value
+            print "feeding_back", lock, side
+            shot_number = self.shot_number_log[-2]
+            feedback_point_value = [lock, side, shot_number]
+            request = {'clock_servo.feedback_point': feedback_point_value}
+            self.server._set_parameter_values(request)
+        
+        #if self.server._get_parameter_value('blue_pmt.recorder'):
+        self.value_log.append(self.value)
+        self.shot_number_log.append(self.server.experiment.get('shot_number'))
 
 
 Parameter = DitherPoint

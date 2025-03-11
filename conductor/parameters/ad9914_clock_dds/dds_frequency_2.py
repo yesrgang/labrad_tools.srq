@@ -22,7 +22,7 @@ class DDS_Frequency_2(ConductorParameter):
                 return
 
             out_freq = fnc.calc_sr2_fnc_box_ref_freq(mjm_comb_demod, self.value)
-            print('AD9914 frequency 0:', out_freq)
+            print('AD9914 frequency 2:', out_freq)
             self.cxn.yesr14_ad9914.clear_programmable_modulus_mode()
             self.cxn.yesr14_ad9914.save_new_frequency(2, out_freq)
 
