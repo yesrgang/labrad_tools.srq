@@ -53,7 +53,7 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
 sock.settimeout(timeout)
 
 Nbits = 36
-Fmax = 150e6
+Fmax = 300e6
 
 # constant output with the following parameters
 ftw = int(round(2**Nbits * float(sys.argv[1])/Fmax))
