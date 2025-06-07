@@ -9,5 +9,5 @@ class Parameter(ConductorParameter, SG380):
 
     def update(self):
         pass
-        #if self.value is not None:
-        #    self.amplitude = self.value
+#        if self.value is not None:
+#            self.amplitude = self.value
