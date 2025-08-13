@@ -58,6 +58,7 @@ Fmax = 300e6 #150e6
 # constant output with the following parameters
 ftw = int(round(2**Nbits * float(sys.argv[1])/Fmax))
 atw = 0xff  # 8-bit ATW
+atw = 0xff  # 8-bit ATW
 ptw = 0x0000 # 16-bit PTW
 
 print(f'freq: {ftw/(2**Nbits)*Fmax}')
