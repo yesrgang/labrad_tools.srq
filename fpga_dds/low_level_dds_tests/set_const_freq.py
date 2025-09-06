@@ -53,15 +53,10 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
 sock.settimeout(timeout)
 
 Nbits = 36
-<<<<<<< HEAD
 Fmax = 300e6
-=======
-Fmax = 300e6
->>>>>>> cdfd54b130d57a7252ccad0b03eb6a782b66b94e
 
 # constant output with the following parameters
 ftw = int(round(2**Nbits * float(sys.argv[1])/Fmax))
-atw = 0xff  # 8-bit ATW
 atw = 0xff  # 8-bit ATW
 ptw = 0x0000 # 16-bit PTW
 

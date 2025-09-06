@@ -36,10 +36,19 @@ def pd_conv(pd_val):
 # seq = [ds.RectangularPulse(1e-3, 2, phase=0., frequency=10e6),
 #        ds.RectangularPulse(1e-3, 2.1, phase=np.pi/2, frequency=11e6),]
 
-seq = [ds.SetTransition(ds.Transition(.5, 10e6, 720)),
-        ds.RectangularPulse(1e-3, 1, phase=0., pd_selection=True),
-        ds.Dark(19e-3),
-        [ds.RectangularPulse(1e-3, 4, phase=np.pi/2, pd_selection=True), ds.RectangularPulse(1e-3, 3, phase=np.pi/2)],]
+#seq = [ds.SetTransition(ds.Transition(.5, 10e6, 720)),
+#        ds.RectangularPulse(1e-3, 1, phase=0., pd_selection=True),
+#        ds.Dark(19e-3),
+#        [ds.RectangularPulse(1e-3, 4, phase=np.pi/2, pd_selection=True), ds.RectangularPulse(1e-3, 3, phase=np.pi/2)],]
+
+fpga_dds_f0 = 155.52e6
+hclk_int_cleanup = 0.08
+hclk_int_p0 = 6.5
+hclk_f0 = fpga_dds_f0 - 200.
+seq = [ds.RectangularPulse(6e-3, hclk_int_p0, phase=0., frequency=fpga_dds_f0, clk_aom=True), # init
+       #ds.Dark(19e-3),
+       ds.RectangularPulse(1e-3, hclk_int_p0, phase=np.pi/2, frequency=hclk_f0, pd_selection=False),
+       ds.RectangularPulse(6e-3, hclk_int_cleanup, phase=0., frequency=fpga_dds_f0, clk_aom=True, clk_shutter=False),] # end
 
 # seq = [ds.SetTransition(ds.Transition(.5, 10e6, 720)),
 #        ds.BlackmanPulse(1e-3, 2, phase=0.),
@@ -99,5 +108,6 @@ ds.set_sequence_searchpath('./sequences')
 sequencer_mapping = ds.SequencerMapping(additional_params={'cleanup': 'HR Abs. AOM@A02'})
 # sequencer_dict = ds.construct_sequencer_sequence(compiled, 'rabi-start', sequencer_mapping=sequencer_mapping) # with additional_params
 sequencer_dict = ds.construct_sequencer_sequence(compiled, 'rabi-start') # without additional_params
+#print(sequencer_dict)
 
 
