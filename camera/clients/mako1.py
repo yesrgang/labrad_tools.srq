@@ -138,6 +138,9 @@ class Client(QtGui.QWidget):
         bright = np.array(h5f['bright'], dtype='float') #- ref_bright
         h5f.close()
 
+        image1 = image
+        bright1 = bright
+
         bright *= image[norm].mean() / bright[norm].mean()
 
         od = np.zeros_like(image)
@@ -146,20 +149,30 @@ class Client(QtGui.QWidget):
         od[i] = np.log(bright[i] / image[i])
         diff[i] = bright[i] - image[i]
         counts = od * PIXEL_SIZE**2 / CROSS_SECTION + diff * GAIN / (np.pi * LINEWIDTH * PULSE_LENGTH)
-
+        
         tot = counts[cloud].sum()
 
-        self.outputBox.setText("Total Counts: {:.2e}\n".format(tot))
+        od1 = np.zeros_like(image1)
+        diff1 = np.zeros_like(image1)
+        i = (image1 > 0) & (bright1 > 0)
+        od1[i] = np.log(bright1[i] / image1 [i])
+        diff1[i] = image[i] - bright1[i]
+        
+
+        tot1 = diff1[cloud].sum()   # photon count from imaging 
+
+        self.outputBox.setText("Total Counts: {0:.3e}\nTotal pixel sum: {1:.3e}".format(tot, tot1))
 
         xmin, xmax = self.figure.get_axes()[0].get_xlim()
         ymin, ymax = self.figure.get_axes()[0].get_ylim()
         self.figure.clear()
         ax = self.figure.add_subplot(111)
-        ax.imshow(counts, cmap='inferno', origin='lower')
+        im = ax.imshow(counts, cmap='inferno', origin='lower')
         ax.set_xlim(xmin, xmax)
         ax.set_ylim(ymin, ymax)
         ax.contour(norm, colors='r')
         ax.contour(cloud, colors='w')
+        self.figure.colorbar(im)
         self.canvas.draw()
     
     def setupAbsorptionImage(self):
@@ -190,11 +203,12 @@ class Client(QtGui.QWidget):
         ymin, ymax = self.figure.get_axes()[0].get_ylim()
         self.figure.clear()
         ax = self.figure.add_subplot(111)
-        ax.imshow(image, cmap='inferno', origin='lower')
+        im = ax.imshow(image, cmap='inferno', origin='lower')
         ax.set_xlim(xmin, xmax)
         ax.set_ylim(ymin, ymax)
         ax.contour(norm, colors='r')
         ax.contour(cloud, colors='w')
+        self.figure.colorbar(im)
         self.canvas.draw()
         
     def setupAbsorptionBright(self):
@@ -211,21 +225,22 @@ class Client(QtGui.QWidget):
     
     def processAbsorptionBright(self, image_path):
         exec(self.getParameters())
-        h5f = h5py.File(os.path.join(DATADIR, "20210123/ref.mako1.hdf5"), "r")
-        ref_image = np.array(h5f['image'], dtype='float')
-        ref_bright = np.array(h5f['bright'], dtype='float')
-        h5f.close()
+#        h5f = h5py.File(os.path.join(DATADIR, "20210123/ref.mako1.hdf5"), "r")
+#        ref_image = np.array(h5f['image'], dtype='float')
+#        ref_bright = np.array(h5f['bright'], dtype='float')
+#        h5f.close()
 
         h5f = h5py.File(image_path, "r")
-        image = np.array(h5f['image'], dtype='float') - ref_image
-        bright = np.array(h5f['bright'], dtype='float') - ref_bright
+        image = np.array(h5f['image'], dtype='float') #- ref_image
+        bright = np.array(h5f['bright'], dtype='float') #- ref_bright
         h5f.close()
         
         self.figure.clear()
         ax = self.figure.add_subplot(111)
-        ax.imshow(bright, cmap='inferno', origin='lower')
+        im = ax.imshow(bright, cmap='inferno', origin='lower')
         ax.contour(norm, colors='r')
         ax.contour(cloud, colors='w')
+        self.figure.colorbar(im)
         self.canvas.draw()
     
     def displayImage(self):
@@ -247,6 +262,54 @@ class Client(QtGui.QWidget):
 
     def closeEvent(self, x):
         self.reactor.stop()
+
+
+"""    ## FLUORESCENCE IMAGING 20241119
+    def processFluorescence(self, image_path):
+        exec(self.getParameters())
+
+        h5f = h5py.File(image_path, "r")
+        image = np.array(h5f['image'], dtype='float') #- ref_image
+        bright = np.array(h5f['bright'], dtype='float') #- ref_bright
+        h5f.close()
+
+        image1 = image
+        bright1 = bright
+
+        bright *= image[norm].mean() / bright[norm].mean()
+
+        od = np.zeros_like(image)
+        diff = np.zeros_like(image)
+        i = (image > 0) & (bright > 0)
+        od[i] = np.log(bright[i] / image[i])
+        diff[i] = bright[i] - image[i]
+        counts = od * PIXEL_SIZE**2 / CROSS_SECTION + diff * GAIN / (np.pi * LINEWIDTH * PULSE_LENGTH)
+        
+        tot = counts[cloud].sum()
+
+        od1 = np.zeros_like(image1)
+        diff1 = np.zeros_like(image1)
+        i = (image1 > 0) & (bright1 > 0)
+        od1[i] = np.log(bright1[i] / image1 [i])
+        diff1[i] = image[i] - bright1[i]
+        
+
+        tot1 = diff1[cloud].sum()   # photon count from imaging 
+
+        self.outputBox.setText("Total Counts: {0:.3e}\nTotal pixel sum: {1:.3e}".format(tot, tot1))
+
+        xmin, xmax = self.figure.get_axes()[0].get_xlim()
+        ymin, ymax = self.figure.get_axes()[0].get_ylim()
+        self.figure.clear()
+        ax = self.figure.add_subplot(111)
+        im = ax.imshow(counts, cmap='inferno', origin='lower')
+        ax.set_xlim(xmin, xmax)
+        ax.set_ylim(ymin, ymax)
+        ax.contour(norm, colors='r')
+        ax.contour(cloud, colors='w')
+        self.figure.colorbar(im)
+        self.canvas.draw()"""
+
 
 if __name__ == '__main__':
     from PyQt4 import QtGui

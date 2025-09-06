@@ -8,5 +8,6 @@ class Parameter(ConductorParameter, SG380):
     _vxi11_address = '192.168.1.94'
 
     def update(self):
-        if self.value is not None:
-            self.amplitude = self.value
+        pass
+#        if self.value is not None:
+#            self.amplitude = self.value

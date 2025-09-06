@@ -3,6 +3,7 @@ from control_loops import PID, PIID
 import json
 import os
 import time
+import subprocess
  
 class FeedbackPoint(ConductorParameter):
     """ 
@@ -42,27 +43,56 @@ class FeedbackPoint(ConductorParameter):
             raise Exception(message)
         else:
             return self.locks[lock]
-    def update(self):
+
+    def update(self): # usually triggered by dither_log
         experiment_name = self.server.experiment.get('name')
         if (self.value is not None) and (experiment_name is not None):
             name, side, shot = self.value
             control_loop = self._get_lock(name)
 
-            #Mod for Sr1 data saving convention
-            point_filename = '{}.blue_pmt'.format(shot)
-            point_path = os.path.join(experiment_name, point_filename)
+            ##Mod for Sr1 data saving convention
+            #point_filename = '{}.blue_pmt'.format(shot)
+            #point_path = os.path.join(experiment_name, point_filename)
 
-            request = {'blue_pmt': point_path}
-            response_json = self.cxn.pmt.retrive_records(json.dumps(request))
-            response = json.loads(response_json)
-#            frac = response['blue_pmt']['frac_sum']
-#            tot = response['blue_pmt']['tot_sum']
-            frac = response['blue_pmt']['frac_fit']
-            tot = response['blue_pmt']['tot_fit']
+            #request = {'blue_pmt': point_path}
+            #response_json = self.cxn.pmt.retrive_records(json.dumps(request))
+            #response = json.loads(response_json)
+#           # frac = response['blue_pmt']['frac_sum']
+#           # tot = response['blue_pmt']['tot_sum']
+            #frac = response['blue_pmt']['frac_fit']
+            #tot = response['blue_pmt']['tot_fit']
 
-            if tot > control_loop.tot_cutoff:
-                control_loop.tick(side, frac)
-            request = {'clock_servo.control_signals.{}'.format(name): control_loop.output}
-            self.server._set_parameter_values(request)
+            shot_number = self.server.experiment.get('shot_number')
+            if shot_number >= 3: # kuro files may not be updated prior to shot 3
+                pic_path = self.get_prev_pic_path()
+                frac, ntot = self.process_pic(pic_path)
+
+                print('eval results for shot {:d}'.format(shot_number))
+                print('EF:   {:.3f}'.format(frac))
+                print('Ntot: {:.0f}'.format(ntot))
+
+                if ntot > control_loop.tot_cutoff:
+                    control_loop.tick(side, frac)
+                request = {'clock_servo.control_signals.{}'.format(name): control_loop.output}
+                self.server._set_parameter_values(request)
+
+    def get_prev_pic_path(self):
+        kuro_path_file = '/srqdata2/data/kuro-tmp-images/destination.txt'
+        with open(kuro_path_file, 'r') as f:
+            pic_path = f.read()
+            pic_path = pic_path[8:].replace('\\', '/') # convert to linux path relative to /srqdata2/data
+        return pic_path
+
+    def process_pic(self, pic_path):
+        x0 = 572
+        y0 = 707
+
+        script_path = '/home/srgang/labrad_tools.srq/conductor/parameters/clock_servo/process_pic.py'
+        try:
+            ret = subprocess.check_output(['python3.9', script_path, pic_path, '{:d}'.format(x0), '{:d}'.format(y0)]) # should return <excitation_fraction> <total_atom_number>
+        except subprocess.CalledProcessError as e:
+            print(e.output)
+        vals = ret.split()
+        return float(vals[0]), float(vals[1]) # [ef, ntot]
 
 Parameter = FeedbackPoint

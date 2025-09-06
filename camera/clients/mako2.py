@@ -50,7 +50,7 @@ class Client(QtGui.QWidget):
 
         self.parameterBox = QtGui.QTextEdit()
         self.parameterBox.setText(
-            "x0, y0 = 440, 683\n"
+            "x0, y0 = 422, 685\n"
             "x, y = np.meshgrid(range(964), range(1292))\n"
             "r2 = (x - x0)**2 + (y - y0)**2\n"
             "cloud = (r2 < 35**2)\n"
