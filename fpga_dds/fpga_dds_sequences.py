@@ -2503,7 +2503,7 @@ def plot_sequence(seq: List[RFBlock], pd_conversion_fct=None):
 
     Args:
         seq ([RFBlock]): The sequence to plot
-        pd_conversion_fct (function): A function that converts the PD setpoint values before the atoms (the default values used in the sequence) to the setpoints after the atoms. This function is called on the compiled timestamps if pd_selection==True. Defaults to None, in which case no convertion is performed.
+        pd_conversion_fct (function): A function that converts the PD setpoint values before the atoms (the default values used in the sequence) to the setpoints after the atoms. This function is called on the compiled timestamps if pd_selection==True. Defaults to None, in which case no conversion is performed.
     """
     import plotly.graph_objects as go
     import plotly.express as px

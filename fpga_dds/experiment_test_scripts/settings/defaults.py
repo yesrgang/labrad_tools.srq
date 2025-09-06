@@ -57,12 +57,42 @@ pv = {
 #    'sequencer.HODT6': -0.08,
 #    'sequencer.HODT7': -0.06,
 
-    'sequencer.I-bm-load-1': -1.4,
-    'sequencer.I-bm-load-2':-1.40, # 2024-08-09 power crappy -> reduced from -1.45 # optimized power on 20240328 - increased to 1.55; used to be -1.50, changed to -1.40 on 20240326 ; used to be -1.6,  changed to -1.55 in the evening of 20231215 since 3d2 power since to decayed.
-    'sequencer.I-bm-load-3': -0.80, # was 0.65, more power is available now
+#    'sequencer.I-bm-load-1': -0.5, #-1.4, updated number is -0.5 on 20241022 after Moglabs blue laser upgrades.
+#    'sequencer.I-bm-load-2':-1.50, # optimized power on 20240328 - increased to 1.55; used to be -1.50, changed to -1.40 on 20240326 ; used to be -1.6,  changed to -1.55 in the evening of 20231215 since 3d2 power since to decayed.
+#    'sequencer.I-bm-load-3': -0.80, # was 0.65, more power is available now
 #    'sequencer.I-bm-load-1': -0.55,
 #    'sequencer.I-bm-load-2': -0.3,
 #    'sequencer.I-bm-load-3': -0.07,
+
+# blue MOT intensity setpoints before finishing blue MOT centering
+## updated 20241031
+#    'sequencer.I-bm-load-1': -0.14, #-.18,
+#    'sequencer.I-bm-load-2': -1.8, #-1.5,
+#    'sequencer.I-bm-load-3': -1.0,
+#
+## 1.9V blue MOT on 20241118 after repositioning burnt cube
+#    'sequencer.I-bm-load-1': -0.17, #-.18,
+#    'sequencer.I-bm-load-2': -2.4, #-1.5,
+#    'sequencer.I-bm-load-3': -.9,
+#
+## temporary 20241126, I assume cube is getting burnt again
+#    'sequencer.I-bm-load-1': -0.17, #-.18,
+#    'sequencer.I-bm-load-2': -2.1, #-1.5,
+#    'sequencer.I-bm-load-3': -.8,
+#
+# 20250121, built cylindrical telescope
+#    'sequencer.I-bm-load-1': -0.17,
+#    'sequencer.I-bm-load-2': -1.8, #-2.1, 
+#    'sequencer.I-bm-load-3': -1.0,
+
+
+# 20250825, only 560mW out of amplifier diode at 780mA.
+    'sequencer.I-bm-load-1': -0.075,
+    'sequencer.I-bm-load-2': -0.955, #-2.1, 
+    'sequencer.I-bm-load-3': -0.515,
+
+
+
     'sequencer.I_hpol': -0.2,
     'sequencer.I_redimg': -.22,
     'sequencer.img-detuning': -0.899,
@@ -96,8 +126,8 @@ pv = {
     'sequencer.VODTo': 0.03,
     'sequencer.XCC0': 0.65,
     'sequencer.XCCclk': 0.644,
-    'sequencer.XCCbm': 0.59,
-    'sequencer.XCCrm': 0.435,
+    #'sequencer.XCCbm': 0.59,
+    #'sequencer.XCCrm': 0.435,
     'sequencer.XCCrimg': 0.74, #0.65,
     'sequencer.XCCpol': 0.8, # 0.65
     'sequencer.YCC0': 0.21,
@@ -129,6 +159,42 @@ pv = {
     'sequencer.ZCC-tens4': -9.0,
     'sequencer.I-1354': 3.915,
     'sequencer.RF-1354': 2.5,
+
+    # 20241029 MOT comp coil values
+    # opt blue MOT loading
+    #'sequencer.XCCbm': 0.65,
+    #'sequencer.YCCbm': 0.21,
+    #'sequencer.ZCCbm': -0.017,
+    # opt red MOT loading
+    #'sequencer.XCCrmload': 0.65,
+    #'sequencer.YCCrmload': 0.21,
+    #'sequencer.ZCCrmload': 0.6,
+    #'sequencer.XCCrmint': 0.7,
+    #'sequencer.YCCrmint': 0.2,
+    #'sequencer.ZCCrmint': 0.3,
+    # final red MOT position
+    #'sequencer.XCCrm': 0.41,
+#    'sequencer.YCCrm': 0.02, # zero field value
+    #'sequencer.YCCrm': 0.07, # temporary
+    #'sequencer.ZCCrm': 0.30,
+
+
+    # 20241126 Red & Blue MOT Optimal Values
+    # compensation coils don't change!
+    'sequencer.XCCbm': 0.41,
+    'sequencer.YCCbm': 0.06,
+    'sequencer.ZCCbm': 0.31,
+
+    'sequencer.XCCrm': 0.41,
+    'sequencer.YCCrm': 0.06,
+    'sequencer.ZCCrm': 0.31,
+
+    'sequencer.XCCrmload': 0.41,
+    'sequencer.YCCrmload': 0.06,
+    'sequencer.ZCCrmload': 0.31,
+
+
+
     }
 
 pv['sequencer.H1-I0'] = 0.015
@@ -152,16 +218,30 @@ pv['sequencer.Tlat1'] = 50e-3
 pv['sequencer.Tlat2'] = 50e-3
 pv['sequencer.Tlat3'] = 50e-3
     
-pv['sequencer.I-bm-cool-1'] = -0.4
-pv['sequencer.I-bm-cool-2'] = -0.4
-pv['sequencer.I-bm-cool-3'] = -0.07
-    
+#pv['sequencer.I-bm-cool-1'] = -0.4
+#pv['sequencer.I-bm-cool-2'] = -0.4
+#pv['sequencer.I-bm-cool-3'] = -0.07
+
+#pv['sequencer.I-bm-cool-2'] = -1.7 #20241107 new value to match the bm-load parameters
+#pv['sequencer.I-bm-cool-1'] = -0.14 #20241107 new value to match the bm-load parameters
+#pv['sequencer.I-bm-cool-1'] = -0.18 #pv['sequencer.I-bm-load-1']
+
+#pv['sequencer.I-bm-cool-1'] = pv['sequencer.I-bm-load-1']
+#pv['sequencer.I-bm-cool-2'] = pv['sequencer.I-bm-load-2']
+#pv['sequencer.I-bm-cool-3'] = pv['sequencer.I-bm-load-3']
+
+pv['sequencer.I-bm-cool-1'] = -0.05
+pv['sequencer.I-bm-cool-2'] = -0.1
+pv['sequencer.I-bm-cool-3'] = -0.1
+
+
+# old values removed 20241029
 pv['sequencer.XCCbm'] = 0.59
 pv['sequencer.XCCrm'] = 0.435
 pv['sequencer.YCCbm'] = 0.2
 pv['sequencer.YCCrm'] = 0.02
 pv['sequencer.ZCCbm'] = 0.345
-pv['sequencer.ZCCrm'] = 0.335 #(20230112 0.0345)
+pv['sequencer.ZCCrm'] = 0.335 #(20230112 0.0345)"""
 
 pv['sequencer.alpha-fm-bb'] = 0.0
 pv['sequencer.alpha-fm-sf'] = 0.1
@@ -271,6 +351,11 @@ pv['sequencer.VODT-compress'] = -0.4
 pv['T-hr-shutter'] = 4e-3 #3.2e-3
 pv['sequencer.clock-intensity-pi'] = 1.5
 
+pv['fpga_dds.verbose'] = 0
+
 pv['save_script.names'] = [] # prevent save_script.name conductor parameter from saving old script when not supplying a new file path
+
+pv['srs_sg382.amplitude'] = 13.6
+pv['srs_sg382.frequency'] = 430e6
 
 parameter_values = pv
