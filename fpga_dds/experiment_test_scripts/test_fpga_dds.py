@@ -56,7 +56,7 @@ hclk_f0 = fpga_dds_f0 + 0.
 
 dds_seqs = []
 virtseqs = []
-for t in times.size:
+for t in range(times.size):
     #seq = [ds.RectangularPulse(1e-3, 1, phase=0., frequency=f_pump),
     #       ds.Wait(10e-3),
     #       ds.RectangularPulse(1e-3, 1, phase=np.pi)]
