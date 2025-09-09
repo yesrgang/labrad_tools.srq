@@ -27,10 +27,10 @@ class Sequences(ConductorParameter):
 
             # program FPGA-DDS
             try:
-                # calculate ref frequency for fnc box
-                mjm_comb_demod = json.loads(self.cxn.conductor.get_parameter_values(json.dumps({'si21.mjm_comb_demod_frequency':{}})))['si21.mjm_comb_demod_frequency']
-                if mjm_comb_demod is None:
-                    print('MJM-comb demod value not ready - FPGA-DDS not programmed!')
+                ## calculate ref frequency for fnc box
+                #mjm_comb_demod = json.loads(self.cxn.conductor.get_parameter_values(json.dumps({'si21.mjm_comb_demod_frequency':{}})))['si21.mjm_comb_demod_frequency']
+                #if mjm_comb_demod is None:
+                #    print('MJM-comb demod value not ready - FPGA-DDS not programmed!')
 
                 # retrieve verbosity setting for FPGA-DDS programming
                 try: # in case fpga_dds.verbose does not exist
@@ -41,13 +41,14 @@ class Sequences(ConductorParameter):
                 except:
                     verbose = False
 
-                self.cxn.yesr13_fpgadds.reset(True) # abort any running sequence (+ clear timestamp memory)
-                if not mjm_comb_demod is None:
-                    freq_offs,freq_mult = fnc.calc_sr2_fnc_box_offs(mjm_comb_demod)
+                self.cxn.yesr14_fpgadds.reset(True) # abort any running sequence (+ clear timestamp memory)
+                #if not mjm_comb_demod is None:
+                #    freq_offs,freq_mult = fnc.calc_sr2_fnc_box_offs(mjm_comb_demod)
 
-                    self.cxn.yesr13_fpgadds.write_timestamps(self.value, freq_offs, freq_mult, True, verbose)
-                    self.cxn.yesr13_fpgadds.trigger() # to ensure the clock AOM does not cool down (add dds_wait_for_trigger=True in the DDS sequence!)
-
+                #    self.cxn.yesr13_fpgadds.write_timestamps(self.value, freq_offs, freq_mult, True, verbose)
+                #    self.cxn.yesr13_fpgadds.trigger() # to ensure the clock AOM does not cool down (add dds_wait_for_trigger=True in the DDS sequence!)
+                self.cxn.yesr14_fpgadds.write_timestamps(self.value, 0., 1., True, verbose)
+                self.cxn.yesr14_fpgadds.trigger() # to ensure the clock AOM does not cool down (add dds_wait_for_trigger=True in the DDS sequence!)
 
             except Exception as e:
                 sys.stdout.write('FPGA-DDS ERROR:\n  ')
