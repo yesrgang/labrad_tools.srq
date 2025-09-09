@@ -2748,7 +2748,7 @@ def gen_seq_from_timestamp_data(timestamp_data, init_pd_set=0.05, init_frequency
     '''
     seq_start = [Timestamp(1e-3, init_pd_set, frequency=init_frequency),
                  Timestamp(
-                     duration=timestamp_data['dutation'][0],
+                     duration=timestamp_data['duration'][0],
                      pd_setpoint=timestamp_data['pd_setpoint'][0],
                      phase=timestamp_data['phase'][0],
                      frequency=timestamp_data['frequency'][0],
@@ -2758,7 +2758,7 @@ def gen_seq_from_timestamp_data(timestamp_data, init_pd_set=0.05, init_frequency
                      dds_wait_for_trigger=True,
                  )]
     seq2 = [Timestamp(
-                duration=timestamp_data['dutation'][t],
+                duration=timestamp_data['duration'][t],
                 pd_setpoint=timestamp_data['pd_setpoint'][t],
                 phase=timestamp_data['phase'][t],
                 frequency=timestamp_data['frequency'][t],
