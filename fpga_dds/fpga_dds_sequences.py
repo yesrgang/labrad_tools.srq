@@ -2733,6 +2733,42 @@ def plot_sequence(seq: List[RFBlock], pd_conversion_fct=None):
     return (compiled, durations, fig)
 
 
+def gen_seq_from_timestamp_data(timestamp_data, init_pd_set=0.05, init_frequency=155.52e6):
+    '''
+    expected timestamp_data format:
+    timestamp_data = {
+        'duration':     np.array([]),
+        'pd_setpoint':  np.array([]),
+        'phase':        np.array([]),
+        'frequency':    np.array([]),
+        'pd_selection': np.array([]),
+        'clk_shutter':  np.array([]),
+        'clk_aom':      np.array([]),
+      }
+    '''
+    seq_start = [Timestamp(1e-3, init_pd_set, frequency=init_frequency),
+                 Timestamp(
+                     duration=timestamp_data['dutation'][0],
+                     pd_setpoint=timestamp_data['pd_setpoint'][0],
+                     phase=timestamp_data['phase'][0],
+                     frequency=timestamp_data['frequency'][0],
+                     pd_selection=timestamp_data['pd_selection'][0]>0.5,
+                     clk_shutter=timestamp_data['clk_shutter'][0]>0.5,
+                     clk_aom=timestamp_data['clk_aom'][0]>0.5,
+                     dds_wait_for_trigger=True,
+                 )]
+    seq2 = [Timestamp(
+                duration=timestamp_data['dutation'][t],
+                pd_setpoint=timestamp_data['pd_setpoint'][t],
+                phase=timestamp_data['phase'][t],
+                frequency=timestamp_data['frequency'][t],
+                pd_selection=timestamp_data['pd_selection'][t]>0.5,
+                clk_shutter=timestamp_data['clk_shutter'][t]>0.5,
+                clk_aom=timestamp_data['clk_aom'][t]>0.5,
+            ) for t in range(1, timestamp_data['duration'].size)]
+    return seq_start + seq2
+
+
 # def send_seq(seq):
 #     if isinstance(seq, List):
 #         # for s in seq:
