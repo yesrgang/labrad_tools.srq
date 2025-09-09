@@ -2,7 +2,8 @@ import numpy as np
 from settings.defaults import parameter_values as pv
 
 import sys
-sys.path.append('../') # for fpga_dds_sequences.py
+#sys.path.append('../') # for fpga_dds_sequences.py
+sys.path.append('C:\\Users\\Ye Lab\\Desktop\\labrad_tools.srq\\fpga_dds') # for fpga_dds_sequences.py
 import fpga_dds_sequences as ds
 import jsonpickle
 
@@ -14,7 +15,7 @@ def get_OLPD_SP(ILPD_SP):
     return (0.9405 * ILPD_SP + 0.1645 - 0.167)/1.009
     #return (0.84 * ILPD_SP + 0.06 - 0.08)/1.01
 
-f_0 = -235.610600e6 + 1951.0
+f_0 = -235.610600e6 + 1952.2 + 2.2
 
 delta_p = 1.422e3
 delta_s = 1.961e3
@@ -73,9 +74,9 @@ for t in range(times.size):
            ds.Timestamp(6e-3, hclk_int_p0, phase=0., frequency=fpga_dds_f0, dds_wait_for_trigger=True), # init
            ds.RectangularPulse(3e-3, hclk_int_p0, phase=0., frequency=fpga_dds_f0, clk_aom=False, clk_shutter=False),
 
-           ds.RectangularPulse(5e-3, 1.1*hclk_int_p0, phase=0., frequency=fpga_dds_f0, clk_aom=True), # dark
+           ds.RectangularPulse(5e-3, 1.2*hclk_int_p0, phase=0., frequency=fpga_dds_f0, clk_aom=True), # dark
            #ds.Dark(19e-3),
-           ds.RectangularPulse(times[t], 1.1*hclk_int_p0, phase=np.pi/2, frequency=hclk_f0, pd_selection=False),
+           ds.RectangularPulse(times[t], 1.2*hclk_int_p0, phase=np.pi/2, frequency=hclk_f0, pd_selection=False),
            ds.RectangularPulse(6e-3, hclk_int_p0, phase=0., frequency=fpga_dds_f0, clk_aom=True, clk_shutter=False), # dark
 
            ds.RectangularPulse(3e-3, hclk_int_p0, phase=0., frequency=fpga_dds_f0, clk_aom=False, clk_shutter=False), # end
