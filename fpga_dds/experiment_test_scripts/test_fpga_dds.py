@@ -14,7 +14,7 @@ def get_OLPD_SP(ILPD_SP):
     return (0.9405 * ILPD_SP + 0.1645 - 0.167)/1.009
     #return (0.84 * ILPD_SP + 0.06 - 0.08)/1.01
 
-f_0 = -235.610600e6 + 1933.22
+f_0 = -235.610600e6 + 1951.0
 
 delta_p = 1.422e3
 delta_s = 1.961e3
@@ -24,7 +24,7 @@ f_pump = f_0 - delta_p
 T_pi_clean = 34.5e-3
 T_pi = 2.82e-3
 
-pv['sequencer.clock-intensity'] = 6.5
+pv['sequencer.clock-intensity'] = 4.5
 pv['sequencer.OLPD-clock-intensity'] = get_OLPD_SP(pv['sequencer.clock-intensity'])
 
 pv['sequencer.clock-intensity-pi'] = 0.08
@@ -35,8 +35,8 @@ detunings = f_pump
 pv['si21.cleanup_detuning'] = f_pump
 pv['si21.probe_detuning'] = detunings
 
-#times = np.linspace(1e-3, 1e-2, 20)
-times = np.array([1e-3])
+times = np.linspace(1e-3, 1e-2, 20)
+#times = np.linspace(1e-3, 20e-3, 40)
 #times0 = np.linspace(1e-6, 2*T_pi , 20)
 #times1 = np.linspace(8*T_pi, 10*T_pi , 21)
 #times  = np.concatenate([times0, times1])
@@ -69,11 +69,17 @@ for t in range(times.size):
     #       ds.RectangularPulse(7.5e-3, 1.)]
 
     # Rabi pulse
-    seq = [ds.Timestamp(1e-3, 2., frequency=f_pump), # run DDS before sequence (ensure that CLK AOM does not cool down!)
-           ds.RectangularPulse(6e-3, hclk_int_p0, phase=0., frequency=fpga_dds_f0, clk_aom=True), # init
+    seq = [ds.Timestamp(1e-3, hclk_int_cleanup, frequency=fpga_dds_f0), # run DDS before sequence (ensure that CLK AOM does not cool down!)
+           ds.Timestamp(6e-3, hclk_int_p0, phase=0., frequency=fpga_dds_f0, dds_wait_for_trigger=True), # init
+           ds.RectangularPulse(3e-3, hclk_int_p0, phase=0., frequency=fpga_dds_f0, clk_aom=False, clk_shutter=False),
+
+           ds.RectangularPulse(5e-3, 1.1*hclk_int_p0, phase=0., frequency=fpga_dds_f0, clk_aom=True), # dark
            #ds.Dark(19e-3),
-           ds.RectangularPulse(times[t], hclk_int_p0, phase=np.pi/2, frequency=hclk_f0, pd_selection=False),
-           ds.RectangularPulse(6e-3, hclk_int_cleanup, phase=0., frequency=fpga_dds_f0, clk_aom=True, clk_shutter=False),] # end
+           ds.RectangularPulse(times[t], 1.1*hclk_int_p0, phase=np.pi/2, frequency=hclk_f0, pd_selection=False),
+           ds.RectangularPulse(6e-3, hclk_int_p0, phase=0., frequency=fpga_dds_f0, clk_aom=True, clk_shutter=False), # dark
+
+           ds.RectangularPulse(3e-3, hclk_int_p0, phase=0., frequency=fpga_dds_f0, clk_aom=False, clk_shutter=False), # end
+           ds.RectangularPulse(5e-3, hclk_int_cleanup, phase=0., frequency=fpga_dds_f0, clk_aom=False, clk_shutter=False),]
 
     #seq = [ds.Timestamp(t, np.pi/2, f_pump, 5, dds_amplitude=.8, additional_params={'cleanup': True}),
     #       ds.Timestamp(30e-3)]
