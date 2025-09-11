@@ -3,7 +3,7 @@ import json
 import sys
 
 
-class Virtseqs(ConductorParameter):
+class Next_virtseqs(ConductorParameter):
     """ 
     Transfer sequence dictionaries to Sequencer which are not saved in a file but just in
     a variable ("virtual sequences"): sequencer.virtseqs
@@ -25,8 +25,9 @@ class Virtseqs(ConductorParameter):
         self.sequencer_server = getattr(self.cxn, self.sequencer_servername)
 
     def update(self):
+        print('hello')
         if self.value is not None:
             self.sequencer_server.set_virtual_sequences(json.dumps(self.value))
 
  
-Parameter = Virtseqs
+Parameter = Next_virtseqs
