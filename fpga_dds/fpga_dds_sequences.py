@@ -235,8 +235,9 @@ def validate_parameters(
     #    )
     if additional_params is not None:
         for key,val in additional_params.items():
-            if type(val) is float and (val < -10. or val > 10.):
-                raise ValueError('Additional parameter {} (value: {}) must be between -10 and +10.'.format(key, val))
+            if type(val) is float:
+                if (val < -10. or val > 10.):
+                    raise ValueError('Additional parameter {} (value: {}) must be between -10 and +10.'.format(key, val))
             elif type(val) is not bool:
                 raise TypeError('Additional parameter {} is of type {} but only float or bool is allowed.'.format(key, type(val)))
     if dds_amplitude is not None and (dds_amplitude < 0 or dds_amplitude > 1):
@@ -2746,26 +2747,64 @@ def gen_seq_from_timestamp_data(timestamp_data, init_pd_set=0.05, init_frequency
         'clk_aom':      np.array([]),
       }
     '''
-    seq_start = [Timestamp(1e-3, init_pd_set, frequency=init_frequency),
-                 Timestamp(
-                     duration=timestamp_data['duration'][0],
-                     pd_setpoint=timestamp_data['pd_setpoint'][0],
-                     phase=timestamp_data['phase'][0],
-                     frequency=timestamp_data['frequency'][0],
-                     pd_selection=timestamp_data['pd_selection'][0]>0.5,
-                     clk_shutter=timestamp_data['clk_shutter'][0]>0.5,
-                     clk_aom=timestamp_data['clk_aom'][0]>0.5,
-                     dds_wait_for_trigger=True,
-                 )]
-    seq2 = [Timestamp(
-                duration=timestamp_data['duration'][t],
-                pd_setpoint=timestamp_data['pd_setpoint'][t],
-                phase=timestamp_data['phase'][t],
-                frequency=timestamp_data['frequency'][t],
-                pd_selection=timestamp_data['pd_selection'][t]>0.5,
-                clk_shutter=timestamp_data['clk_shutter'][t]>0.5,
-                clk_aom=timestamp_data['clk_aom'][t]>0.5,
-            ) for t in range(1, timestamp_data['duration'].size)]
+
+    data_keys = list(timestamp_data.keys())
+    data_keys.remove('duration')
+    data_keys.remove('pd_setpoint')
+    data_keys.remove('phase')
+    data_keys.remove('frequency')
+    data_keys.remove('pd_selection')
+    data_keys.remove('clk_shutter')
+    data_keys.remove('clk_aom')
+
+
+    if len(data_keys) == 0:
+        seq_start = [Timestamp(1e-3, init_pd_set, frequency=init_frequency),
+                     Timestamp(
+                         duration=timestamp_data['duration'][0],
+                         pd_setpoint=timestamp_data['pd_setpoint'][0],
+                         phase=timestamp_data['phase'][0],
+                         frequency=timestamp_data['frequency'][0],
+                         pd_selection=timestamp_data['pd_selection'][0]>0.5,
+                         clk_shutter=timestamp_data['clk_shutter'][0]>0.5,
+                         clk_aom=timestamp_data['clk_aom'][0]>0.5,
+                         dds_wait_for_trigger=True,
+                     )]
+        seq2 = [Timestamp(
+                    duration=timestamp_data['duration'][t],
+                    pd_setpoint=timestamp_data['pd_setpoint'][t],
+                    phase=timestamp_data['phase'][t],
+                    frequency=timestamp_data['frequency'][t],
+                    pd_selection=timestamp_data['pd_selection'][t]>0.5,
+                    clk_shutter=timestamp_data['clk_shutter'][t]>0.5,
+                    clk_aom=timestamp_data['clk_aom'][t]>0.5,
+                ) for t in range(1, timestamp_data['duration'].size)]
+    else:
+        additional_vals = np.array([timestamp_data[key] for key in data_keys])
+
+        seq_start = [Timestamp(1e-3, init_pd_set, frequency=init_frequency, additional_params={key: float(0) for key in data_keys}),
+                     Timestamp(
+                         duration=timestamp_data['duration'][0],
+                         pd_setpoint=timestamp_data['pd_setpoint'][0],
+                         phase=timestamp_data['phase'][0],
+                         frequency=timestamp_data['frequency'][0],
+                         pd_selection=timestamp_data['pd_selection'][0]>0.5,
+                         clk_shutter=timestamp_data['clk_shutter'][0]>0.5,
+                         clk_aom=timestamp_data['clk_aom'][0]>0.5,
+                         additional_params={key: float(val) for key, val in zip(data_keys, additional_vals[:,0])},
+                         dds_wait_for_trigger=True,
+                     )]
+        seq2 = [Timestamp(
+                    duration=timestamp_data['duration'][t],
+                    pd_setpoint=timestamp_data['pd_setpoint'][t],
+                    phase=timestamp_data['phase'][t],
+                    frequency=timestamp_data['frequency'][t],
+                    pd_selection=timestamp_data['pd_selection'][t]>0.5,
+                    clk_shutter=timestamp_data['clk_shutter'][t]>0.5,
+                    clk_aom=timestamp_data['clk_aom'][t]>0.5,
+                    additional_params={key: float(val) for key, val in zip(data_keys, additional_vals[:,t])},
+                ) for t in range(1, timestamp_data['duration'].size)]
+
     return seq_start + seq2
 
 
