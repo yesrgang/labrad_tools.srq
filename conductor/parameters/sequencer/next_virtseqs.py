@@ -25,7 +25,6 @@ class Next_virtseqs(ConductorParameter):
         self.sequencer_server = getattr(self.cxn, self.sequencer_servername)
 
     def update(self):
-        print('hello')
         if self.value is not None:
             self.sequencer_server.set_virtual_sequences(json.dumps(self.value))
 
