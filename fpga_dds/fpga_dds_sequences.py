@@ -351,6 +351,7 @@ class Timestamp(RFBlock):
         state.dds_digital_out = copy(state.dds_digital_out)
         for c, v in self.dds_digital_out.items():
             if not isinstance(v, bool):
+                print(type(v))
                 raise ValueError(
                     "Digital output {} must be boolean but is {}.".format(c, v)
                 )
@@ -2734,7 +2735,8 @@ def plot_sequence(seq: List[RFBlock], pd_conversion_fct=None):
     return (compiled, durations, fig)
 
 
-def gen_seq_from_timestamp_data(timestamp_data, init_pd_set=0.05, init_frequency=155.52e6):
+def gen_seq_from_timestamp_data(timestamp_data, init_pd_set=0.05, init_frequency=-235.610e6,
+                                d0=None, d1=None, d2=None, d3=None, d4=None, d5=None, d6=None):
     '''
     expected timestamp_data format:
     timestamp_data = {
@@ -2748,6 +2750,7 @@ def gen_seq_from_timestamp_data(timestamp_data, init_pd_set=0.05, init_frequency
       }
     '''
 
+    # determine additional_params
     data_keys = list(timestamp_data.keys())
     data_keys.remove('duration')
     data_keys.remove('pd_setpoint')
@@ -2757,7 +2760,31 @@ def gen_seq_from_timestamp_data(timestamp_data, init_pd_set=0.05, init_frequency
     data_keys.remove('clk_shutter')
     data_keys.remove('clk_aom')
 
+    # set up digital channels
+    dig_chs = {}
+    dig_ch_el0 = {}
+    dig_ch_els = [{}]*timestamp_data['duration'].size
+    if (d0 is not None) or (d1 is not None) or (d2 is not None) or (d3 is not None) or \
+       (d4 is not None) or (d5 is not None) or (d6 is not None):
+        if d0 is not None:
+            dig_chs[0] = np.array([v > 0.5 for v in d0])
+        if d1 is not None:
+            dig_chs[1] = np.array([v > 0.5 for v in d1])
+        if d2 is not None:
+            dig_chs[2] = np.array([v > 0.5 for v in d2])
+        if d3 is not None:
+            dig_chs[3] = np.array([v > 0.5 for v in d3])
+        if d4 is not None:
+            dig_chs[4] = np.array([v > 0.5 for v in d4])
+        if d5 is not None:
+            dig_chs[5] = np.array([v > 0.5 for v in d5])
+        if d6 is not None:
+            dig_chs[6] = np.array([v > 0.5 for v in d6])
+        dig_ch_el0 = {key: bool(val) for key, val in zip(dig_chs.keys(), np.array(list(dig_chs.values()))[:,0])}
+        for t in range(1, timestamp_data['duration'].size):
+            dig_ch_els[t] = {key: bool(val) for key, val in zip(dig_chs.keys(), np.array(list(dig_chs.values()))[:,t])}
 
+    # construct sequence of Timestamps
     if len(data_keys) == 0:
         seq_start = [Timestamp(1.0, init_pd_set, frequency=init_frequency-500e3),
                      Timestamp(1e-3, init_pd_set, frequency=init_frequency),
@@ -2770,6 +2797,7 @@ def gen_seq_from_timestamp_data(timestamp_data, init_pd_set=0.05, init_frequency
                          clk_shutter=timestamp_data['clk_shutter'][0]>0.5,
                          clk_aom=timestamp_data['clk_aom'][0]>0.5,
                          dds_wait_for_trigger=True,
+                         dds_digital_out=dig_ch_el0,
                      )]
         seq2 = [Timestamp(
                     duration=timestamp_data['duration'][t],
@@ -2779,6 +2807,7 @@ def gen_seq_from_timestamp_data(timestamp_data, init_pd_set=0.05, init_frequency
                     pd_selection=timestamp_data['pd_selection'][t]>0.5,
                     clk_shutter=timestamp_data['clk_shutter'][t]>0.5,
                     clk_aom=timestamp_data['clk_aom'][t]>0.5,
+                    dds_digital_out=dig_ch_els[t],
                 ) for t in range(1, timestamp_data['duration'].size)]
     else:
         additional_vals = np.array([timestamp_data[key] for key in data_keys])
@@ -2795,6 +2824,7 @@ def gen_seq_from_timestamp_data(timestamp_data, init_pd_set=0.05, init_frequency
                          clk_aom=timestamp_data['clk_aom'][0]>0.5,
                          additional_params={key: float(val) for key, val in zip(data_keys, additional_vals[:,0])},
                          dds_wait_for_trigger=True,
+                         dds_digital_out=dig_ch_el0,
                      )]
         seq2 = [Timestamp(
                     duration=timestamp_data['duration'][t],
@@ -2805,6 +2835,7 @@ def gen_seq_from_timestamp_data(timestamp_data, init_pd_set=0.05, init_frequency
                     clk_shutter=timestamp_data['clk_shutter'][t]>0.5,
                     clk_aom=timestamp_data['clk_aom'][t]>0.5,
                     additional_params={key: float(val) for key, val in zip(data_keys, additional_vals[:,t])},
+                    dds_digital_out=dig_ch_els[t],
                 ) for t in range(1, timestamp_data['duration'].size)]
 
     return seq_start + seq2
