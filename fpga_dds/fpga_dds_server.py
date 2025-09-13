@@ -296,6 +296,9 @@ class SynthesizerServer(LabradServer):
           #  if hasattr(el, 'frequency') and not el.frequency is None:
           #    el.frequency = freq_mult * el.frequency + freq_offs
           ds.scale_frequency(ts_list, freq_offs, freq_mult)
+          #for el in ts_list:
+          #    if hasattr(el, 'frequency') and not el.frequency is None:
+          #        print(f'freq: {el.frequency:.3f}')
 
         if compile:
             timestamps = loads(ds.compile_sequence(timestamps)[0], keys=True)
