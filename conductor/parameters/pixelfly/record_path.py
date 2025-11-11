@@ -23,6 +23,7 @@ class Parameter(ConductorParameter):
         "image-princeton-pco": "absorption",
         "image-princeton-pco-odt": "absorption",
         "image-odt-tens4": "absorption",
+        "image-pixelfly-odt-lattice": "absorption", # added 2025/11/10
 #        "image-princeton-single": "absorption",
 #        "image-princeton-single-repump": "fluorescence",
         }
