@@ -38,7 +38,7 @@ class Frequency(ConductorParameter):
                     amp_LO.value = 10
                 print("Rigol DG4162 output: {} MHz, {} dBm.".format(self.value/1e6, amp_LO.value))
                 #print(type(amp_LO.value))
-                self.cxn.yesr13_rigol.set_wf_sine_full(1, self.value, amp_LO.value, 5)
+                self.cxn.yesr14_rigol.set_wf_sine_full(1, self.value, amp_LO.value, 5)
                 #self.cxn.yesr13_rigol.connect_dev()
                 #self.cxn.yesr13_rigol.initialize_dev()
                 #self.cxn.yesr13_rigol.disconnect_dev()
