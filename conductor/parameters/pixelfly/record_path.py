@@ -29,7 +29,9 @@ class Parameter(ConductorParameter):
         }
 
     data_filename = 'Q:\\data\\{}\\{}.pixelfly.hdf5'
+#    data_filename = '/home/srgang/srqdata2/data/{}/{}.pixelfly.hdf5'
     nondata_filename = 'Q:\\data\\{}\\pixelfly.hdf5'
+    #nondata_filename = '/home/srgang/srqdata2/data/{}/pixelfly.hdf5'
 
     data_directory = os.path.join(os.getenv('PROJECT_DATA_PATH'), 'data')
 
@@ -71,6 +73,7 @@ class Parameter(ConductorParameter):
     
         if record_type == 'absorption':
             self.cxn.yesr13_pixelfly.take_picture(self.value)
+            #self.cxn.yesr14_pixelfly.take_picture(self.value)
 
 #        if record_type == 'fluorescence':
 #            self.cxn.yesr13_pixelfly.take_picture_fl(self.value)
