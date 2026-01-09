@@ -2786,8 +2786,7 @@ def gen_seq_from_timestamp_data(timestamp_data, init_pd_set=0.05, init_frequency
 
     # construct sequence of Timestamps
     if len(data_keys) == 0:
-        seq_start = [Timestamp(1.0, init_pd_set, frequency=init_frequency-500e3),
-                     Timestamp(1e-3, init_pd_set, frequency=init_frequency),
+        seq_start = [Timestamp(1.0, init_pd_set, frequency=init_frequency),
                      Timestamp(
                          duration=timestamp_data['duration'][0],
                          pd_setpoint=timestamp_data['pd_setpoint'][0],
@@ -2812,8 +2811,7 @@ def gen_seq_from_timestamp_data(timestamp_data, init_pd_set=0.05, init_frequency
     else:
         additional_vals = np.array([timestamp_data[key] for key in data_keys])
 
-        seq_start = [Timestamp(1.0, init_pd_set, frequency=init_frequency-500e3, additional_params={key: float(0) for key in data_keys}),
-                     Timestamp(1e-3, init_pd_set, frequency=init_frequency, additional_params={key: float(0) for key in data_keys}),
+        seq_start = [Timestamp(1.0, init_pd_set, frequency=init_frequency, additional_params={key: float(0) for key in data_keys}),
                      Timestamp(
                          duration=timestamp_data['duration'][0],
                          pd_setpoint=timestamp_data['pd_setpoint'][0],
