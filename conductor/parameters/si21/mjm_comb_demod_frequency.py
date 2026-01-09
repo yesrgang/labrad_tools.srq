@@ -3,7 +3,8 @@ from conductor.parameter import ConductorParameter
 import urllib2 # for python 2 compatibility
 
 
-def get_frequency(url="http://128.138.107.123:8080"):
+#def get_frequency(url="http://128.138.107.123:8080"):
+def get_frequency(url="http://10.100.1.11:8080"):
     try:
         return float(urllib2.urlopen(url, timeout=0.1).read().strip())
     except:
