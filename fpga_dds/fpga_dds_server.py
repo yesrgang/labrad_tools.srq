@@ -258,7 +258,8 @@ class SynthesizerServer(LabradServer):
         buffers = []
         for i, s in enumerate(timestamps):
             timestamp = s["timestamp"]
-            phase_update = s["dds_phase_update"]
+            #phase_update = s["dds_phase_update"]
+            phase_update = 1
             phase = s["phase"]
             address = i
             amplitude = s["dds_amplitude"]
