@@ -138,7 +138,9 @@ class SynthesizerServer(LabradServer):
             channel (int): The channel to set. Must be between 0 and 3.
             address (int): The address of the timestep
             timestamp (int): The time of the timestamp (in s).
-            phase_update (int): Whether to update the phase. 0 to not change phase, 1 to set absolute phase, 2 to increment phase.
+            phase_update (int): Whether to update the phase. 0 to not change phase (do not reposition phase pointer in the DDS lookup table at the start of the timestamp),
+                                                             1 to set absolute phase (set absolue position of the phase pointer in the DDS lookup table at each timestamp),
+                                                             2 to increment phase (relative to the current phase pointer position).
             phase (int): The phase (in radians) to set
             amplitude (int): The amplitude (relative to full scale) to set
             frequency (int): The frequency (in Hz) to set
@@ -168,7 +170,9 @@ class SynthesizerServer(LabradServer):
             buffers.append(b)
 
         # Timestamp, trigger & digital outputs
-        dds_data = SynthesizerServer.t_to_timestamp(timestamp)
+        timestamp_int = SynthesizerServer.t_to_timestamp(timestamp)
+        timestamp_act = dds_settings.T_MIN * np.double(timestamp_int)
+        dds_data = timestamp_int
         dds_data |= int(wait_for_trigger) << 48
         for i in range(dds_settings.N_DIGITAL):
             dds_data |= digital_out[i] << (56+i)
@@ -177,13 +181,17 @@ class SynthesizerServer(LabradServer):
         buffers[1][4:] = (dds_data >> 32).to_bytes(4, "big")
 
         # Frequency (36-bit)
-        dds_data = SynthesizerServer.f_to_ftw(frequency)
+        ftw_int  = SynthesizerServer.f_to_ftw(frequency)
+        freq_act = (dds_settings.F_MAX / 2**dds_settings.F_BITS) * np.double(ftw_int)
+        dds_data = ftw_int
 
         # Amplitude (8-bit)
         dds_data |= (SynthesizerServer.a_to_atw(amplitude) & 0xFF) << 36
 
         # Phase (16-bit)
-        dds_data |= (SynthesizerServer.phase_to_ptw(phase) & 0xFFFF) << 44
+        # assuming phase_update==1 (setting absolute phase), calculate the phase relative to the desired frequency component (relative to phase=0 at t=0)
+        phase_act = phase + 2*np.pi * np.mod(timestamp_act*freq_act, 1.)
+        dds_data |= (SynthesizerServer.phase_to_ptw(phase_act) & 0xFFFF) << 44
 
         dds_data |= phase_update << 60 # 0: don't change phase
                                        # 1: absolute phase
@@ -195,9 +203,9 @@ class SynthesizerServer(LabradServer):
         if verbose:
             print(f'Compiled timestamp @ ch={channel}, addr=0x{address:04X}:')
             SynthesizerServer.print_buffers(buffers)
-            print(f' timestamp:     {timestamp}')
-            print(f' frequency:     {frequency}')
-            print(f' phase:         {phase}')
+            print(f' timestamp:     {timestamp}  (actual: {timestamp_act})')
+            print(f' frequency:     {frequency}  (actual: {freq_act})')
+            print(f' phase:         {phase}  (actual: {phase_act})')
             print(f' amplitude:     {amplitude}')
             print(f' digital:       {digital_out}')
             print(f' phase update:  {phase_update}')
@@ -259,7 +267,7 @@ class SynthesizerServer(LabradServer):
         for i, s in enumerate(timestamps):
             timestamp = s["timestamp"]
             #phase_update = s["dds_phase_update"]
-            phase_update = 1
+            phase_update = 1 # compile_tiestamp currently assumes that phase_update==1 for calculating the correct DDS phase for different frequencies
             phase = s["phase"]
             address = i
             amplitude = s["dds_amplitude"]
